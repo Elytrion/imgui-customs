@@ -42,7 +42,7 @@ FetchContent_MakeAvailable(glm)
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG        v1.91.6
+  GIT_TAG docking
 )
 FetchContent_GetProperties(imgui)
 if (NOT imgui_POPULATED)
@@ -73,10 +73,12 @@ add_library(glad STATIC
 target_include_directories(glad PUBLIC external/glad/include)
 
 # ---- App target ----
-add_executable(imgui_customs
-  src/main.cpp
-  src/imgui_config.h
+file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
+	src/*.cpp
+	src/*.hpp
+	src/*.h
 )
+add_executable(imgui_customs ${SRC})
 
 target_include_directories(imgui_customs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
