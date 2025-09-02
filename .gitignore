@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+# Cmake
+/build/
+/out/
+/CMakeFiles/
+CMakeCache.txt
+
+# VS
+.vs/
+*.VC.db
+*.VC.opendb
