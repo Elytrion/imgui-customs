@@ -1,9 +1,11 @@
-#pragma once
-#include "imgui_config.h"
+#pragma 
+#include <vector>
+#include <memory>
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
+#include "demo_module.h"
 
 class DemoManager
 {
@@ -18,6 +20,8 @@ public:
 
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init("#version 460");
+
+		InitModules();
 	}
 
 	static void NewFrame();
@@ -49,6 +53,13 @@ public:
 		ImGui::DestroyContext();
 	}
 
+	static void RegisterDemoModule(std::shared_ptr<DemoModule> module)
+	{
+		demo_modules.push_back(module);
+	}
+
+	static const std::vector<std::shared_ptr<DemoModule>>& GetDemoModules() { return demo_modules; }
+
 private:
 	static void DrawDockspaceWindow();
 	static void DrawCustomImguiDemo();
@@ -57,5 +68,8 @@ private:
 	static constexpr const char* main_dockspace_id_name{ "MainDockspace" };
 	static constexpr const char* custom_demo_window_name{ "ImGui Customs Demo" };
 
-	static inline bool show_base_imgui_demo{ true };
+	static inline bool show_base_imgui_demo{ false };
+
+	static void InitModules();
+	static inline std::vector<std::shared_ptr<DemoModule>> demo_modules;
 };

@@ -16,9 +16,9 @@ void DemoManager::DrawDockspaceWindow()
         | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking
         | ImGuiWindowFlags_NoBackground;
 
-    if (ImGui::Begin("##Dockspace Window", nullptr, flags))
+    if (ImGui::Begin(dockspace_window_name, nullptr, flags))
     {
-        ImGuiID dockspace_id = ImGui::GetID("MainDockspace");
+        ImGuiID dockspace_id = ImGui::GetID(main_dockspace_id_name);
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
         static bool dock_built = false;
@@ -62,11 +62,20 @@ void DemoManager::DrawCustomImguiDemo()
         ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
     }
 
+    for (auto& module : demo_modules)
+    {
+		module->DrawSelector();
+	}
+
     ImGui::Checkbox("Show ImGui Demo", &show_base_imgui_demo);
 
 	ImGui::End();
-}
 
+    for (auto& module : demo_modules)
+    {
+        module->DrawPopoutPanel();
+	}
+}
 
 void DemoManager::NewFrame()
 {
