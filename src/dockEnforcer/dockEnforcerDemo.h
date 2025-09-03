@@ -42,7 +42,12 @@ inline void DockEnforcerDemo::OnPreDraw()
 
 inline void DockEnforcerDemo::DrawDemoPanel()
 {
-	ImGui::TextWrapped("Try dragging this window out of its dock space.");
+	constexpr const char* help_text =
+		"The panel will start out floating, and has to be docked to ensure proper behavior.\n\n"
+		"This panel is being forced to stay docked.\n"
+		"If you try to drag it out of its dock space, it will snap back in place.\n"
+		"You can change this behavior using the checkboxes below.\n";
+	ImGui::TextWrapped(help_text);
 	ImGui::Separator();
 	ImGui::Checkbox("Enforce Docking?", &enforce_docking);
 	ImGui::Checkbox("Specify Target Dock Window?", &specify_dock_target);

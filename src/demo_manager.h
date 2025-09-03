@@ -68,8 +68,6 @@ private:
 	static constexpr const char* main_dockspace_id_name{ "MainDockspace" };
 	static constexpr const char* custom_demo_window_name{ "ImGui Customs Demo" };
 
-	static inline bool show_base_imgui_demo{ false };
-
 	static void InitModules();
 	static inline std::vector<std::shared_ptr<DemoModule>> demo_modules;
 };

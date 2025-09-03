@@ -48,6 +48,9 @@ inline void DemoModule::DrawPopoutPanel()
 	if (drawn)
 		DrawDemoPanel();
 	OnPostDraw();
+	ImGui::Separator();
+	if (ImGui::Button("Close Panel"))
+		popout_open = false;
 	ImGui::End();
 	OnPostPanel();
 }

@@ -1,8 +1,8 @@
 #pragma once
-#include <imgui.h>
 #include <unordered_map>
 #include <string>
 #include <cassert>
+#include <imgui.h>
 #include <imgui_internal.h>
 
 class DockEnforcer
@@ -162,10 +162,11 @@ inline void DockEnforcer::DockEnforcerEndLock()
     mem.rollback_armed = false;
 }
 
+static DockEnforcer g_dock_enforcer; // Global instance of the enforcer
+
 // ImGui namespace access for convenience
 namespace ImGui
 {
-    static DockEnforcer g_dock_enforcer; // Global instance of the enforcer
     // you can use local instances if you want to manage multiple layouts,
     // but you must call their PreNewFrame() before ImGui::NewFrame()
 

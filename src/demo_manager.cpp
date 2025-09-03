@@ -16,8 +16,10 @@ void DemoManager::DrawDockspaceWindow()
         | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking
         | ImGuiWindowFlags_NoBackground;
 
+    ImGui::DockEnforcerBeginLock(dockspace_window_name);
     if (ImGui::Begin(dockspace_window_name, nullptr, flags))
     {
+		ImGui::DockEnforcerEndLock();
         ImGuiID dockspace_id = ImGui::GetID(main_dockspace_id_name);
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
@@ -52,7 +54,9 @@ void DemoManager::DrawDockspaceWindow()
 
 void DemoManager::DrawCustomImguiDemo()
 {
+    //ImGui::DockEnforcerBeginLock(custom_demo_window_name);
 	bool drawn = ImGui::Begin(custom_demo_window_name, nullptr);
+	//ImGui::DockEnforcerEndLock();
     if (!drawn) { ImGui::End(); return; }
 
     if (ImGui::CollapsingHeader("Help"))
@@ -66,8 +70,6 @@ void DemoManager::DrawCustomImguiDemo()
     {
 		module->DrawSelector();
 	}
-
-    ImGui::Checkbox("Show ImGui Demo", &show_base_imgui_demo);
 
 	ImGui::End();
 
@@ -92,6 +94,4 @@ void DemoManager::Draw()
     DrawDockspaceWindow();
 
 	DrawCustomImguiDemo();
-
-    if (show_base_imgui_demo) ImGui::ShowDemoWindow(&show_base_imgui_demo);
 }
