@@ -4,6 +4,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
+
 class DemoManager
 {
 public:
@@ -19,12 +20,7 @@ public:
 		ImGui_ImplOpenGL3_Init("#version 460");
 	}
 
-	static void NewFrame()
-	{
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-	}
+	static void NewFrame();
 
 	static void Draw();
 
@@ -52,4 +48,7 @@ public:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
+
+private:
+	static inline bool show_base_imgui_demo{ false };
 };
