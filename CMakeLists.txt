@@ -74,15 +74,28 @@ target_include_directories(glad PUBLIC external/glad/include)
 
 # ---- App target ----
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
-	src/*.cpp
-	src/*.hpp
-	src/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 )
+
 add_executable(imgui_customs ${SRC})
 
 target_include_directories(imgui_customs PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+if (MSVC)
+  # Put sources under "src/..." filters that mirror the tree
+  source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SRC})
+
+  # (nice to have) put third-party targets in their own Solution folder
+  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+  set_target_properties(imgui PROPERTIES FOLDER "3rdparty")
+  set_target_properties(glad  PROPERTIES FOLDER "3rdparty")
+  set_target_properties(glfw  PROPERTIES FOLDER "3rdparty")
+endif()
 
 target_link_libraries(imgui_customs PRIVATE
   imgui
