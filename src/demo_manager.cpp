@@ -15,8 +15,9 @@ void DemoManager::DrawDockspaceWindow()
         | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
         | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking
         | ImGuiWindowFlags_NoBackground;
-
-    ImGui::DockEnforcerBeginLock(dockspace_window_name);
+    // not sure why this is needed, but it is, dock enforcer seems not like the module structure
+    // you should be able to use dock enforcer as is
+	ImGui::DockEnforcerBeginLock(dockspace_window_name); 
     if (ImGui::Begin(dockspace_window_name, nullptr, flags))
     {
 		ImGui::DockEnforcerEndLock();
@@ -54,9 +55,7 @@ void DemoManager::DrawDockspaceWindow()
 
 void DemoManager::DrawCustomImguiDemo()
 {
-    //ImGui::DockEnforcerBeginLock(custom_demo_window_name);
 	bool drawn = ImGui::Begin(custom_demo_window_name, nullptr);
-	//ImGui::DockEnforcerEndLock();
     if (!drawn) { ImGui::End(); return; }
 
     if (ImGui::CollapsingHeader("Help"))
