@@ -50,5 +50,12 @@ public:
 	}
 
 private:
-	static inline bool show_base_imgui_demo{ false };
+	static void DrawDockspaceWindow();
+	static void DrawCustomImguiDemo();
+
+	static constexpr const char* dockspace_window_name{ "##Dockspace Window" };
+	static constexpr const char* main_dockspace_id_name{ "MainDockspace" };
+	static constexpr const char* custom_demo_window_name{ "ImGui Customs Demo" };
+
+	static inline bool show_base_imgui_demo{ true };
 };

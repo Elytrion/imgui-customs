@@ -1,8 +1,8 @@
 #include "demo_manager.h"
 // custom imgui headers
-#include "imguiDockEnforcer.h"
+#include "dockEnforcer/imguiDockEnforcer.h"
 
-static void DrawDockspaceWindow()
+void DemoManager::DrawDockspaceWindow()
 {
     ImGuiViewport* vp = ImGui::GetMainViewport();
 
@@ -21,9 +21,52 @@ static void DrawDockspaceWindow()
         ImGuiID dockspace_id = ImGui::GetID("MainDockspace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
 
+        static bool dock_built = false;
+        if (!dock_built)
+        {
+            dock_built = true;
+            // Check if the dockspace tree already exists
+            if (ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockspace_id))
+            { 
+                const bool oldlayout = (node->IsSplitNode() || node->Windows.Size > 0);
+                if (!oldlayout) // build default layout
+                {
+                    ImGui::DockBuilderRemoveNode(dockspace_id);
+                    ImGui::DockBuilderAddNode(dockspace_id,
+                        ImGuiDockNodeFlags_DockSpace);
+                    ImGui::DockBuilderSetNodeSize(dockspace_id, vp->Size);
+
+                    ImGuiID dock_right = ImGui::DockBuilderSplitNode(
+                        dockspace_id, ImGuiDir_Right, 0.3f,
+                        nullptr, &dockspace_id);
+
+                    ImGui::DockBuilderDockWindow(custom_demo_window_name, dock_right);
+                    ImGui::DockBuilderFinish(dockspace_id);
+                }
+            }
+        }
+
         ImGui::End();
     }
 }
+
+void DemoManager::DrawCustomImguiDemo()
+{
+	bool drawn = ImGui::Begin(custom_demo_window_name, nullptr);
+    if (!drawn) { ImGui::End(); return; }
+
+    if (ImGui::CollapsingHeader("Help"))
+    {
+        ImGui::SeparatorText("USER GUIDE:");
+        ImGui::ShowUserGuide();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
+    }
+
+    ImGui::Checkbox("Show ImGui Demo", &show_base_imgui_demo);
+
+	ImGui::End();
+}
+
 
 void DemoManager::NewFrame()
 {
@@ -39,10 +82,7 @@ void DemoManager::Draw()
 {
     DrawDockspaceWindow();
 
-    ImGui::Begin("Hello, ImGui");
-    ImGui::TextUnformatted("GLFW + GLAD + GLM + ImGui (GL3)");
-    ImGui::Checkbox("Show ImGui Demo", &show_base_imgui_demo);
-    ImGui::End();
+	DrawCustomImguiDemo();
 
     if (show_base_imgui_demo) ImGui::ShowDemoWindow(&show_base_imgui_demo);
 }
