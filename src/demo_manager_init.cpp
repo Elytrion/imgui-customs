@@ -2,10 +2,12 @@
 // demo modules
 #include "dockEnforcer/dockEnforcerDemo.h"
 #include "spinner/spinnerDemo.h"
+#include "localModal/localModalDemo.h"
 
 
 void DemoManager::InitModules()
 {
 	RegisterDemoModule(std::make_shared<DockEnforcerDemo>());
 	RegisterDemoModule(std::make_shared<SpinnerDemo>());
+	RegisterDemoModule(std::make_shared<LocalModalDemo>());
 }
