@@ -1,5 +1,6 @@
 #pragma once
 #include "imguiDockEnforcer.h"
+#include "demo_module.h"
 
 class DockEnforcerDemo : public DemoModule
 {
