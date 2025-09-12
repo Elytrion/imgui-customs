@@ -4,6 +4,7 @@
 #include "spinner/spinnerDemo.h"
 #include "localModal/localModalDemo.h"
 #include "toggle/toggleDemo.h"
+#include "multiToggle/multiToggleDemo.h"
 
 
 void DemoManager::InitModules()
@@ -12,4 +13,5 @@ void DemoManager::InitModules()
 	RegisterDemoModule(std::make_shared<SpinnerDemo>());
 	RegisterDemoModule(std::make_shared<LocalModalDemo>());
 	RegisterDemoModule(std::make_shared<ToggleDemo>());
+	RegisterDemoModule(std::make_shared<MultiToggleDemo>());
 }
