@@ -23,7 +23,6 @@ protected:
 	void virtual OnPostPanel() {};
 };
 
-
 inline void DemoModule::DrawSelector()
 {
 	if (ImGui::CollapsingHeader(selector_name.c_str()))
@@ -31,7 +30,7 @@ inline void DemoModule::DrawSelector()
 		DrawSelectedDemo();
 
 		ImGui::Separator();
-		if (ImGui::Button("Open Demo Panel"))
+		if (ImGui::Button(("Open Demo Panel##" + selector_name).c_str()))
 			popout_open = true;
 	}
 }
@@ -49,7 +48,7 @@ inline void DemoModule::DrawPopoutPanel()
 		DrawDemoPanel();
 	OnPostDraw();
 	ImGui::Separator();
-	if (ImGui::Button("Close Panel"))
+	if (ImGui::Button(("Close Panel##" + panel_name).c_str()))
 		popout_open = false;
 	ImGui::End();
 	OnPostPanel();
