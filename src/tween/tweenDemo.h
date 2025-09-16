@@ -4,6 +4,20 @@
 
 class TweenDemo : public DemoModule
 {
+	// variables for the main demo
+    bool inside_manual = false;       // used when Drive = Manual
+    bool auto_loop = false;       // Drive = Auto (loop)
+    float auto_pause = 0.00f;       // extra dwell time at each endpoint
+    int   drive_mode = 0;           // 0=Hover, 1=Manual, 2=Auto
+    float upDur = 0.20f;
+    float downDur = 0.18f;
+    int   easing_idx = IndexFromEasing(Easing::easeInOutCubic);
+    float (*easeFn)(float) = EASING_FNS[easing_idx].fn;
+    bool ch_pos = true;     float   pos_min = 0.0f, pos_max = 120.0f;  // X offset
+    bool ch_size = true;    ImVec2  size_min = ImVec2(160, 38), size_max = ImVec2(240, 56);
+    bool ch_round = true;   float   r_min = 4.0f, r_max = 16.0f;
+    bool ch_bg = true;      ImVec4  bg_min = ImVec4(0.14f, 0.14f, 0.16f, 1.0f), bg_max = ImVec4(0.35f, 0.22f, 0.70f, 1.0f);
+    bool ch_text = false;   float   a_min = 0.40f, a_max = 1.00f;   // text alpha
 public:
 	TweenDemo() : DemoModule("Imgui Tween", "Tween Demo Panel") {}
 protected:
@@ -11,45 +25,6 @@ protected:
     void OnPrePanel() override;
 	void DrawDemoPanel() override;
 };
-
-static void TD_Help(const char* text)
-{
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 42.0f);
-        ImGui::TextUnformatted(text);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-struct TDEasingEntry { const char* name; float (*fn)(float); };
-static constexpr TDEasingEntry TD_EASINGS[] = {
-    { "Linear (none)", nullptr },
-    { "Sine In",       Easing::easeInSine },
-    { "Sine Out",      Easing::easeOutSine },
-    { "Sine InOut",    Easing::easeInOutSine },
-    { "Quad InOut",    Easing::easeInOutQuad },
-    { "Cubic Out",     Easing::easeOutCubic },
-    { "Cubic InOut",   Easing::easeInOutCubic },
-    { "Quart Out",     Easing::easeOutQuart },
-    { "Quint Out",     Easing::easeOutQuint },
-    { "Expo InOut",    Easing::easeInOutExpo },
-    { "Circ InOut",    Easing::easeInOutCirc },
-    { "Back InOut",    Easing::easeInOutBack },
-    { "Elastic Out",   Easing::easeOutElastic },
-    { "Elastic InOut", Easing::easeInOutElastic },
-    { "Bounce Out",    Easing::easeOutBounce },
-    { "Bounce InOut",  Easing::easeInOutBounce },
-};
-static int TD_IndexFromEasing(float (*fn)(float))
-{
-    for (int i = 0; i < (int)IM_ARRAYSIZE(TD_EASINGS); ++i)
-        if (TD_EASINGS[i].fn == fn) return i;
-    return 0;
-}
 
 void TweenDemo::DrawSelectedDemo()
 {
@@ -131,25 +106,19 @@ void TweenDemo::OnPrePanel()
 
 void TweenDemo::DrawDemoPanel()
 {
-    // Live preview state
-    static bool inside_manual = false;       // used when Drive = Manual
-    static bool auto_loop = false;       // Drive = Auto (loop)
-    static float auto_pause = 0.00f;       // extra dwell time at each endpoint
-    static int   drive_mode = 0;           // 0=Hover, 1=Manual, 2=Auto
-
-    // Tween params
-    static float upDur = 0.20f;
-    static float downDur = 0.18f;
-    static int   easing_idx = TD_IndexFromEasing(Easing::easeInOutCubic);
-    static float (*easeFn)(float) = TD_EASINGS[easing_idx].fn;
-
-    // Channels (min/max)
-    static bool ch_pos = true;   static float   pos_min = 0.0f, pos_max = 120.0f;  // X offset
-    static bool ch_size = true;   static ImVec2  size_min = ImVec2(160, 38), size_max = ImVec2(240, 56);
-    static bool ch_round = true;   static float   r_min = 4.0f, r_max = 16.0f;
-    static bool ch_bg = true;   static ImVec4  bg_min = ImVec4(0.14f, 0.14f, 0.16f, 1.0f),
-        bg_max = ImVec4(0.35f, 0.22f, 0.70f, 1.0f);
-    static bool ch_text = false;  static float   a_min = 0.40f, a_max = 1.00f;   // text alpha
+    auto HelpTooltip = [](const char* text)
+    {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+        {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 42.0f);
+            ImGui::TextUnformatted(text);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+	};
 
     ImGui::TextUnformatted("Tween Playground");
     ImGui::Separator();
@@ -254,7 +223,7 @@ void TweenDemo::DrawDemoPanel()
         if (drive_mode == 1) {
             ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Manual Inside");
             ImGui::TableSetColumnIndex(1);
-            ImGui::Checkbox("##inside", &inside_manual); TD_Help("Toggle to send the tween from min->max (true) or max->min (false).");
+            ImGui::Checkbox("##inside", &inside_manual); HelpTooltip("Toggle to send the tween from min->max (true) or max->min (false).");
         }
         if (drive_mode == 2) {
             ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Auto Pause (s)");
@@ -272,18 +241,18 @@ void TweenDemo::DrawDemoPanel()
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Easing");
         ImGui::TableSetColumnIndex(1);
         {
-            if (ImGui::BeginCombo("##ease", TD_EASINGS[easing_idx].name)) {
-                for (int i = 0; i < (int)IM_ARRAYSIZE(TD_EASINGS); ++i) {
+            if (ImGui::BeginCombo("##ease", EASING_FNS[easing_idx].name)) {
+                for (int i = 0; i < (int)IM_ARRAYSIZE(EASING_FNS); ++i) {
                     bool sel = (i == easing_idx);
-                    if (ImGui::Selectable(TD_EASINGS[i].name, sel)) {
+                    if (ImGui::Selectable(EASING_FNS[i].name, sel)) {
                         easing_idx = i;
-                        easeFn = TD_EASINGS[i].fn;
+                        easeFn = EASING_FNS[i].fn;
                     }
                     if (sel) ImGui::SetItemDefaultFocus();
                 }
                 ImGui::EndCombo();
             }
-            TD_Help("Different curves for the normalized time t in [0,1].");
+            HelpTooltip("Different curves for the normalized time t in [0,1].");
         }
 
         // CHANNELS
@@ -293,7 +262,7 @@ void TweenDemo::DrawDemoPanel()
         ImGui::TableSetColumnIndex(1);
         ImGui::Checkbox("##ch_pos", &ch_pos); ImGui::SameLine();
         ImGui::DragFloatRange2("##pos_mm", &pos_min, &pos_max, 1.0f, -400.0f, 400.0f, "min=%.0f", "max=%.0f");
-        TD_Help("Horizontal offset applied to the tile.");
+        HelpTooltip("Horizontal offset applied to the tile.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Size (W,H)");
         ImGui::TableSetColumnIndex(1);
@@ -328,8 +297,8 @@ void TweenDemo::DrawDemoPanel()
             auto_loop = false; auto_pause = 0.0f;
 
             upDur = 0.20f; downDur = 0.18f;
-            easing_idx = TD_IndexFromEasing(Easing::easeInOutCubic);
-            easeFn = TD_EASINGS[easing_idx].fn;
+            easing_idx = IndexFromEasing(Easing::easeInOutCubic);
+            easeFn = EASING_FNS[easing_idx].fn;
 
             ch_pos = ch_size = ch_round = ch_bg = true; ch_text = false;
             pos_min = 0.0f; pos_max = 120.0f;

@@ -27,37 +27,14 @@ void MultiToggleDemo::OnPrePanel()
 }
 
 void MultiToggleDemo::DrawDemoPanel()
-{    // --- Small helpers (header-safe "static") ---
-    struct EasingEntry { const char* name; float (*fn)(float); };
-    static const std::array<EasingEntry, 16> kEasings = { {
-        { "Linear (none)",            nullptr },
-        { "Sine In",                  Easing::easeInSine },
-        { "Sine Out",                 Easing::easeOutSine },
-        { "Sine InOut",               Easing::easeInOutSine },
-        { "Quad InOut",               Easing::easeInOutQuad },
-        { "Cubic Out",                Easing::easeOutCubic },
-        { "Cubic InOut",              Easing::easeInOutCubic },
-        { "Quart Out",                Easing::easeOutQuart },
-        { "Quint Out",                Easing::easeOutQuint },
-        { "Expo InOut",               Easing::easeInOutExpo },
-        { "Circ InOut",               Easing::easeInOutCirc },
-        { "Back InOut",               Easing::easeInOutBack },
-        { "Elastic Out",              Easing::easeOutElastic },
-        { "Elastic InOut",            Easing::easeInOutElastic },
-        { "Bounce Out",               Easing::easeOutBounce },
-        { "Bounce InOut",             Easing::easeInOutBounce },
-    } };
-    auto IndexFromEasing = [&](float (*fn)(float)) {
-        for (int i = 0; i < (int)kEasings.size(); ++i) if (kEasings[i].fn == fn) return i;
-        return 0;
-        };
+{    
     auto EditColorU32 = [](const char* label, ImU32* c) {
         ImVec4 v = ImGui::ColorConvertU32ToFloat4(*c);
         bool changed = ImGui::ColorEdit4(label, &v.x, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs);
         if (changed) *c = ImGui::GetColorU32(v);
         return changed;
         };
-    auto Help = [](const char* text) {
+    auto HelpTooltip = [](const char* text) {
         ImGui::SameLine(); ImGui::TextDisabled("(?)");
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
             ImGui::BeginTooltip();
@@ -147,23 +124,23 @@ void MultiToggleDemo::DrawDemoPanel()
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Size (W,H)");
         ImGui::TableSetColumnIndex(1);
         ImGui::DragFloat2("##size", &cfg.size.x, 1.0f, 0.0f, 2000.0f, "%.1f");
-        Help("Set (0,0) for auto height = 1.35 * FrameHeight and width fills content region.\n"
+        HelpTooltip("Set (0,0) for auto height = 1.35 * FrameHeight and width fills content region.\n"
             "When unequal sections are enabled, width also accounts for gaps and measured text.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Track Rounding");
         ImGui::TableSetColumnIndex(1);
         ImGui::DragFloat("##rounding", &cfg.rounding, 0.2f, -1.0f, 200.0f, "%.1f");
-        Help("-1 = half height (pill).");
+        HelpTooltip("-1 = half height (pill).");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Plate Padding");
         ImGui::TableSetColumnIndex(1);
         ImGui::SliderFloat("##plate_pad", &cfg.plate_pad, 0.0f, 24.0f, "%.1f");
-        Help("Inner padding around the moving plate (left/right & top/bottom).");
+        HelpTooltip("Inner padding around the moving plate (left/right & top/bottom).");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Equal Sections");
         ImGui::TableSetColumnIndex(1);
         ImGui::Checkbox("##equal", &cfg.equal_sections);
-        Help("ON = evenly split track width into N sections.\nOFF = section width from measured text.");
+        HelpTooltip("ON = evenly split track width into N sections.\nOFF = section width from measured text.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Gap (unequal only)");
         ImGui::TableSetColumnIndex(1);
@@ -198,16 +175,16 @@ void MultiToggleDemo::DrawDemoPanel()
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Anim Speed (sec)");
         ImGui::TableSetColumnIndex(1);
         ImGui::DragFloat("##anim_speed", &cfg.anim_speed, 0.01f, 0.0f, 2.0f, "%.2f");
-        Help("Time to traverse fully from one option to another.\n0.0 = instant snap.");
+        HelpTooltip("Time to traverse fully from one option to another.\n0.0 = instant snap.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Easing");
         ImGui::TableSetColumnIndex(1);
         {
             int idx = IndexFromEasing(cfg.easing);
-            if (ImGui::BeginCombo("##easing_combo", kEasings[idx].name)) {
-                for (int i = 0; i < (int)kEasings.size(); ++i) {
+            if (ImGui::BeginCombo("##easing_combo", EASING_FNS[idx].name)) {
+                for (int i = 0; i < (int)EASING_FNS_COUNT; ++i) {
                     bool sel = (i == idx);
-                    if (ImGui::Selectable(kEasings[i].name, sel)) { cfg.easing = kEasings[i].fn; idx = i; }
+                    if (ImGui::Selectable(EASING_FNS[i].name, sel)) { cfg.easing = EASING_FNS[i].fn; idx = i; }
                     if (sel) ImGui::SetItemDefaultFocus();
                 }
                 ImGui::EndCombo();

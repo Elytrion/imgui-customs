@@ -167,3 +167,32 @@ namespace Easing
 	}
 
 }
+
+// --- ImGui specific helpers ---
+// (Remove this if you don't intend to use this)
+struct EasingEntry { const char* name; float (*fn)(float); };
+static constexpr EasingEntry EASING_FNS[] = {
+	{ "Linear (none)", nullptr },
+	{ "Sine In",       Easing::easeInSine },
+	{ "Sine Out",      Easing::easeOutSine },
+	{ "Sine InOut",    Easing::easeInOutSine },
+	{ "Quad InOut",    Easing::easeInOutQuad },
+	{ "Cubic Out",     Easing::easeOutCubic },
+	{ "Cubic InOut",   Easing::easeInOutCubic },
+	{ "Quart Out",     Easing::easeOutQuart },
+	{ "Quint Out",     Easing::easeOutQuint },
+	{ "Expo InOut",    Easing::easeInOutExpo },
+	{ "Circ InOut",    Easing::easeInOutCirc },
+	{ "Back InOut",    Easing::easeInOutBack },
+	{ "Elastic Out",   Easing::easeOutElastic },
+	{ "Elastic InOut", Easing::easeInOutElastic },
+	{ "Bounce Out",    Easing::easeOutBounce },
+	{ "Bounce InOut",  Easing::easeInOutBounce },
+};
+static constexpr int EASING_FNS_COUNT = (int)IM_ARRAYSIZE(EASING_FNS);
+static int IndexFromEasing(float (*fn)(float))
+{
+	for (int i = 0; i < (int)IM_ARRAYSIZE(EASING_FNS); ++i)
+		if (EASING_FNS[i].fn == fn) return i;
+	return 0;
+}

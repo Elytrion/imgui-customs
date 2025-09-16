@@ -181,55 +181,6 @@ void ToggleDemo::OnPrePanel()
     ImGui::SetNextWindowSize({ 700, 600 }, ImGuiCond_Appearing);
 }
 
-
-// Small question-mark help marker
-static void HelpMarker(const char* desc)
-{
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-// Convert U32 <-> ImVec4 helpers
-static bool EditColorU32(const char* label, ImU32* c)
-{
-    ImVec4 v = ImGui::ColorConvertU32ToFloat4(*c);
-    bool changed = ImGui::ColorEdit4(label, &v.x,
-        ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
-    if (changed) *c = ImGui::GetColorU32(v);
-    return changed;
-}
-struct EasingEntry { const char* name; float (*fn)(float); };
-static constexpr std::array<EasingEntry, 16> kEasings = { {
-    { "Linear (none)",            nullptr },
-    { "Sine In",                  Easing::easeInSine },
-    { "Sine Out",                 Easing::easeOutSine },
-    { "Sine InOut",               Easing::easeInOutSine },
-    { "Quad InOut",               Easing::easeInOutQuad },
-    { "Cubic Out",                Easing::easeOutCubic },
-    { "Cubic InOut",              Easing::easeInOutCubic },
-    { "Quart Out",                Easing::easeOutQuart },
-    { "Quint Out",                Easing::easeOutQuint },
-    { "Expo InOut",               Easing::easeInOutExpo },
-    { "Circ InOut",               Easing::easeInOutCirc },
-    { "Back InOut",               Easing::easeInOutBack },
-    { "Elastic Out",              Easing::easeOutElastic },
-    { "Elastic InOut",            Easing::easeInOutElastic },
-    { "Bounce Out",               Easing::easeOutBounce },
-    { "Bounce InOut",             Easing::easeInOutBounce },
-} };
-static int IndexFromEasing(float (*fn)(float))
-{
-    for (int i = 0; i < (int)kEasings.size(); ++i)
-        if (kEasings[i].fn == fn) return i;
-    return 0; // default to "Linear"
-}
 // Optional: show the *effective* geometry with current config + style
 static void ShowDerivedGeometryPreview(const ImGui::ToggleConfig& cfg)
 {
@@ -245,8 +196,32 @@ static void ShowDerivedGeometryPreview(const ImGui::ToggleConfig& cfg)
     ImGui::Text("Effective handle: W=%.1f  H=%.1f  R=%.1f",
         handle_half * 2.0f, (h - cfg.padding * 2.0f), handle_round);
 }
+
 void ToggleDemo::DrawDemoPanel()
 {
+    auto EditColorU32 = [](const char* label, ImU32* c) -> bool
+    {
+        ImVec4 v = ImGui::ColorConvertU32ToFloat4(*c);
+        bool changed = ImGui::ColorEdit4(label, &v.x,
+            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+        if (changed) *c = ImGui::GetColorU32(v);
+        return changed;
+	};
+
+    auto HelpMarker = [](const char* desc)
+    {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+        {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
+            ImGui::TextUnformatted(desc);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+	};
+
     // Live preview value
     static bool demo_val = true;
 
@@ -313,14 +288,14 @@ void ToggleDemo::DrawDemoPanel()
         ImGui::SeparatorText("Animation");
         {
             int ease_idx = IndexFromEasing(demo_cfg.easingFunc);
-            if (ImGui::BeginCombo("Easing", kEasings[ease_idx].name))
+            if (ImGui::BeginCombo("Easing", EASING_FNS[ease_idx].name))
             {
-                for (int i = 0; i < (int)kEasings.size(); ++i)
+                for (int i = 0; i < (int)EASING_FNS_COUNT; ++i)
                 {
                     bool selected = (i == ease_idx);
-                    if (ImGui::Selectable(kEasings[i].name, selected))
+                    if (ImGui::Selectable(EASING_FNS[i].name, selected))
                     {
-                        demo_cfg.easingFunc = kEasings[i].fn;
+                        demo_cfg.easingFunc = EASING_FNS[i].fn;
                         ease_idx = i;
                     }
                     if (selected)
@@ -354,7 +329,7 @@ void ToggleDemo::DrawDemoPanel()
             ImGui::Text("state: %s | anim: %s | easing: %s",
                 demo_val ? "ON" : "OFF",
                 (demo_cfg.anim_speed <= 0.0f ? "instant" : "smooth"),
-                kEasings[IndexFromEasing(demo_cfg.easingFunc)].name);
+                EASING_FNS[IndexFromEasing(demo_cfg.easingFunc)].name);
         }
         ImGui::EndChild();
 
