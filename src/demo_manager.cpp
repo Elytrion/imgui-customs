@@ -61,7 +61,7 @@ void DemoManager::DrawCustomImguiDemo()
     if (ImGui::CollapsingHeader("Help"))
     {
         ImGui::SeparatorText("USER GUIDE:");
-        ImGui::ShowUserGuide();
+		ImGui::ShowUserGuide(); //TODO: replace with custom user guide
         ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
     }
 

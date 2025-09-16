@@ -199,142 +199,167 @@ static void ShowDerivedGeometryPreview(const ImGui::ToggleConfig& cfg)
 
 void ToggleDemo::DrawDemoPanel()
 {
-    auto EditColorU32 = [](const char* label, ImU32* c) -> bool
-    {
+    // --- Helpers (same vibe as MultiToggle) ---
+    auto EditColorU32 = [](const char* label, ImU32* c) {
         ImVec4 v = ImGui::ColorConvertU32ToFloat4(*c);
         bool changed = ImGui::ColorEdit4(label, &v.x,
-            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+            ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs);
         if (changed) *c = ImGui::GetColorU32(v);
         return changed;
-	};
-
-    auto HelpMarker = [](const char* desc)
-    {
-        ImGui::SameLine();
-        ImGui::TextDisabled("(?)");
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-        {
+        };
+    auto HelpTooltip = [](const char* text) {
+        ImGui::SameLine(); ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
             ImGui::BeginTooltip();
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 40.0f);
-            ImGui::TextUnformatted(desc);
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 42.0f);
+            ImGui::TextUnformatted(text);
             ImGui::PopTextWrapPos();
             ImGui::EndTooltip();
         }
-	};
+        };
 
-    // Live preview value
+    // --- Persistent preview state (like MultiToggle's current_index) ---
     static bool demo_val = true;
 
-    // Layout: left = controls, right = preview
-    if (ImGui::BeginTable("toggle_cfg_table", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp))
+    ImGui::TextUnformatted("Toggle Playground");
+    ImGui::Separator();
+
+    // =========================
+    // Preview (bordered child)
+    // =========================
+    ImGui::BeginChild("toggle_preview_child", ImVec2(0, 0),
+        ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
     {
-        ImGui::TableSetupColumn("Config", ImGuiTableColumnFlags_WidthStretch, 0.60f);
-        ImGui::TableSetupColumn("Preview", ImGuiTableColumnFlags_WidthStretch, 0.40f);
-        ImGui::TableNextRow();
+        ImGui::Text("demo_toggle");
+        ImGui::SameLine(180.0f);
 
-        // =========================
-        // Left: controls
-        // =========================
-        ImGui::TableSetColumnIndex(0);
+        bool prev = demo_val;
+        ImGui::Toggle("##demo_toggle", &demo_val, demo_cfg);
+        bool changed = (prev != demo_val);
 
-        // Header + Reset
-        ImGui::TextUnformatted("Toggle Config (playground)");
+        // Show effective geometry like a quick “derived” readout (inline):
+        float frame_h = ImGui::GetFrameHeight();
+        float h = (demo_cfg.size.y > 0.0f) ? demo_cfg.size.y : frame_h;
+        float w = (demo_cfg.size.x > 0.0f) ? demo_cfg.size.x : (h * 2.0f);
+
+        ImGui::Text("Changed this frame: %s", changed ? "Yes" : "No");
         ImGui::SameLine();
-        if (ImGui::SmallButton("Reset to defaults"))
-        {
-            demo_cfg = ImGui::ToggleConfig{}; // value-init uses your defaults from imguiToggle.h
-        }
+        ImGui::Text("| State: %s", demo_val ? "ON" : "OFF");
+        ImGui::Text("Anim: %s | Size: (%.1f, %.1f) | Padding: %.2f",
+            (demo_cfg.anim_speed <= 0.0f ? "instant" : "smooth"),
+            w, h, demo_cfg.padding);
+    }
+    ImGui::EndChild();
 
-        ImGui::SeparatorText("Geometry");
-        {
-            // Size: 0 means auto (w=2*h, h=frame height)
-            ImGui::TextUnformatted("Size");
-            HelpMarker("Set to (0,0) for auto: height = FrameHeight, width = 2 * height.");
-            ImGui::DragFloat2("size (w,h)", &demo_cfg.size.x, 1.0f, 0.0f, 1000.0f, "%.1f");
+    ImGui::Spacing();
+    ImGui::SeparatorText("Settings");
 
-            // Rounding: -1 means auto (track: half-height; handle: circle)
-            ImGui::TextUnformatted("Rounding");
-            HelpMarker("Track rounding: -1 = half-height.\nHandle rounding: -1 = circle.");
-            ImGui::DragFloat("track rounding", &demo_cfg.rounding, 0.2f, -1.0f, 100.0f, "%.1f");
-            ImGui::DragFloat("handle rounding", &demo_cfg.handle_rounding, 0.2f, -1.0f, 100.0f, "%.1f");
+    // =========================
+    // Settings (two-column table)
+    // =========================
+    if (ImGui::BeginTable("toggle_cfg_table", 2, ImGuiTableFlags_SizingStretchProp))
+    {
+        ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 170.0f);
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-            // Padding between handle & track box
-            ImGui::DragFloat("padding", &demo_cfg.padding, 0.1f, -8.0f, 16.0f, "%.2f");
-            HelpMarker("Space between handle and track box.\nCan be negative for a larger handle look (e.g., Minecraft-like).");
+        // -------- Geometry --------
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Size (W,H)");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::DragFloat2("##size", &demo_cfg.size.x, 1.0f, 0.0f, 2000.0f, "%.1f");
+        HelpTooltip("Set (0,0) for auto: H = FrameHeight, W = 2*H.");
 
-            if (ImGui::TreeNode("Derived (read-only)"))
-            {
-                ShowDerivedGeometryPreview(demo_cfg);
-                ImGui::TreePop();
-            }
-        }
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Track Rounding");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::DragFloat("##track_rounding", &demo_cfg.rounding, 0.2f, -1.0f, 200.0f, "%.1f");
+        HelpTooltip("-1 = half height (pill).");
 
-        ImGui::SeparatorText("Track Colors");
-        {
-            EditColorU32("off bg", &demo_cfg.col_off_bg);
-            EditColorU32("off hover bg", &demo_cfg.col_off_hover_bg);
-            EditColorU32("on bg", &demo_cfg.col_on_bg);
-            EditColorU32("on hover bg", &demo_cfg.col_on_hover_bg);
-        }
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Handle Rounding");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::DragFloat("##handle_rounding", &demo_cfg.handle_rounding, 0.2f, -1.0f, 200.0f, "%.1f");
+        HelpTooltip("-1 = circle (handle radius from height/padding).");
 
-        ImGui::SeparatorText("Handle Colors");
-        {
-            EditColorU32("off handle", &demo_cfg.col_off_hnd);
-            EditColorU32("off hover handle", &demo_cfg.col_off_hover_hnd);
-            EditColorU32("on handle", &demo_cfg.col_on_hnd);
-            EditColorU32("on hover handle", &demo_cfg.col_on_hover_hnd);
-        }
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Padding");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::DragFloat("##padding", &demo_cfg.padding, 0.1f, -8.0f, 16.0f, "%.2f");
+        HelpTooltip("Space between handle and track. Can be negative for a 'big handle' look.");
 
-        ImGui::SeparatorText("Animation");
+        // -------- Colors: Track --------
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::SeparatorText("Track Colors");
+        ImGui::TableSetColumnIndex(1);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Off (bg)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##off_bg", &demo_cfg.col_off_bg);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Off Hover (bg)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##off_hover_bg", &demo_cfg.col_off_hover_bg);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("On (bg)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##on_bg", &demo_cfg.col_on_bg);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("On Hover (bg)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##on_hover_bg", &demo_cfg.col_on_hover_bg);
+
+        // -------- Colors: Handle --------
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::SeparatorText("Handle Colors");
+        ImGui::TableSetColumnIndex(1);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Off (handle)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##off_hnd", &demo_cfg.col_off_hnd);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Off Hover (handle)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##off_hover_hnd", &demo_cfg.col_off_hover_hnd);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("On (handle)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##on_hnd", &demo_cfg.col_on_hnd);
+
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("On Hover (handle)");
+        ImGui::TableSetColumnIndex(1); EditColorU32("##on_hover_hnd", &demo_cfg.col_on_hover_hnd);
+
+        // -------- Animation --------
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::SeparatorText("Animation");
+        ImGui::TableSetColumnIndex(1);
+
+        // Easing
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Easing");
+        ImGui::TableSetColumnIndex(1);
         {
             int ease_idx = IndexFromEasing(demo_cfg.easingFunc);
-            if (ImGui::BeginCombo("Easing", EASING_FNS[ease_idx].name))
-            {
-                for (int i = 0; i < (int)EASING_FNS_COUNT; ++i)
-                {
-                    bool selected = (i == ease_idx);
-                    if (ImGui::Selectable(EASING_FNS[i].name, selected))
-                    {
+            if (ImGui::BeginCombo("##easing_combo", EASING_FNS[ease_idx].name)) {
+                for (int i = 0; i < (int)EASING_FNS_COUNT; ++i) {
+                    bool sel = (i == ease_idx);
+                    if (ImGui::Selectable(EASING_FNS[i].name, sel)) {
                         demo_cfg.easingFunc = EASING_FNS[i].fn;
                         ease_idx = i;
                     }
-                    if (selected)
-                        ImGui::SetItemDefaultFocus();
+                    if (sel) ImGui::SetItemDefaultFocus();
                 }
                 ImGui::EndCombo();
             }
-            ImGui::DragFloat("anim speed (sec full)", &demo_cfg.anim_speed, 0.01f, 0.0f, 2.0f, "%.2f");
-            HelpMarker("Time (in seconds) to go from 0.0 -> 1.0.\nSet to 0.0 for an instant click (no tween).");
         }
 
-        // =========================
-        // Right: live preview
-        // =========================
+        // Anim speed
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Anim Speed (sec)");
         ImGui::TableSetColumnIndex(1);
+        ImGui::DragFloat("##anim_speed", &demo_cfg.anim_speed, 0.01f, 0.0f, 2.0f, "%.2f");
+        HelpTooltip("Time to traverse 0 -> 1. Set 0.0 for an instant click (no tween).");
 
-        ImGui::TextUnformatted("Preview");
-        ImGui::Separator();
+        // -------- Current Value (parity with MultiToggle's Current Index) --------
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Current Value");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox("##cur_val", &demo_val);
+        HelpTooltip("Programmatically set the toggle state. Click the preview to animate it.");
 
-        // Optional framing so users can see hover states clearly
-        ImGui::BeginChild("preview_child", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
-        {
-            // Draw a label + live toggle with current config
-            ImGui::Text("demo_toggle");
-            ImGui::SameLine(180.0f);
-
-            // The preview toggle
-            ImGui::Toggle("##demo_toggle", &demo_val, demo_cfg);
-
-            // Status line (helps debug)
-            ImGui::Text("state: %s | anim: %s | easing: %s",
-                demo_val ? "ON" : "OFF",
-                (demo_cfg.anim_speed <= 0.0f ? "instant" : "smooth"),
-                EASING_FNS[IndexFromEasing(demo_cfg.easingFunc)].name);
+        // -------- Reset --------
+        ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::TextUnformatted("Reset");
+        ImGui::TableSetColumnIndex(1);
+        if (ImGui::SmallButton("Reset to defaults")) {
+            demo_cfg = ImGui::ToggleConfig{}; // struct defaults (imguiToggle.h)
+            demo_val = true;
         }
-        ImGui::EndChild();
 
         ImGui::EndTable();
     }
 }
+
 
 

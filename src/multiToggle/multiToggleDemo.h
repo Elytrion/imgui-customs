@@ -23,7 +23,7 @@ void MultiToggleDemo::DrawSelectedDemo()
 
 void MultiToggleDemo::OnPrePanel()
 {
-	ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ 700, 600 }, ImGuiCond_Appearing);
 }
 
 void MultiToggleDemo::DrawDemoPanel()
