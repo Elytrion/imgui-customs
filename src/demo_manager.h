@@ -32,6 +32,7 @@ public:
 			cfg.PixelSnapH = true;
 			cfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_LightHinting;
 			io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
+			io.Fonts->TexMinHeight = 4096; io.Fonts->TexMinWidth = 4096;
 			ImFont* ui = io.Fonts->AddFontFromMemoryTTF(
 				(void*)SourceSans3_Regular_data,
 				(int)SourceSans3_Regular_size,
