@@ -58,6 +58,8 @@ void DemoManager::DrawCustomImguiDemo()
 	bool drawn = ImGui::Begin(custom_demo_window_name, nullptr);
     if (!drawn) { ImGui::End(); return; }
 
+    ImGui::Text("\xf0\x9f\x8d\x89 \xf0\x9f\x8d\x8a \xf0\x9f\x8d\x8b");
+    ImGui::Text(u8"\U0001F432 \U0000261D \U0001f21A");
     if (ImGui::CollapsingHeader("Help"))
     {
         ImGui::SeparatorText("USER GUIDE:");

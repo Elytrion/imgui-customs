@@ -38,6 +38,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+# ---- Fetch FreeType ----
+FetchContent_Declare(
+  freetype
+  GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
+  GIT_TAG VER-2-14-0
+)
+FetchContent_MakeAvailable(freetype)  # provides Freetype::Freetype
+
 # ---- Fetch Dear ImGui (no native CMake, so we create a target) ----
 FetchContent_Declare(
   imgui
@@ -56,14 +64,21 @@ if (NOT imgui_POPULATED)
     $<$<BOOL:${IMGUI_ENABLE_DEMO}>:${imgui_SOURCE_DIR}/imgui_demo.cpp>
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
   )
   target_include_directories(imgui PUBLIC
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
+    ${imgui_SOURCE_DIR}/misc/freetype      # for imgui_freetype.h
   )
-  # Tell backend we use GLAD as loader (so it includes <glad/glad.h>)
-  target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
-  target_link_libraries(imgui PUBLIC glfw)
+  # Tell backend we use GLAD as loader (so it includes <glad/glad.h>) with Freetype
+  target_compile_definitions(imgui PUBLIC
+    IMGUI_IMPL_OPENGL_LOADER_GLAD
+    IMGUI_ENABLE_FREETYPE
+    IMGUI_USE_WCHAR32
+  )
+  # ImGui needs glfw; FreeType for the font builder
+  target_link_libraries(imgui PUBLIC glfw freetype)
 endif()
 
 # ---- GLAD (vendored; no FetchContent) ----

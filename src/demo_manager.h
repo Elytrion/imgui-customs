@@ -4,8 +4,13 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <misc/freetype/imgui_freetype.h>
 #include <GLFW/glfw3.h>
 #include "demo_module.h"
+#include "fonts/sourceSans3_regular.h"
+
+static inline bool s_use_freetype = false;
+static inline bool s_load_color = false;
 
 class DemoManager
 {
@@ -17,6 +22,31 @@ public:
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
 		ImGui::StyleColorsDark();
+
+		{
+			ImFontConfig cfg;
+			cfg.FontDataOwnedByAtlas = false; // data lives in your compiled binary
+			cfg.OversampleH = cfg.OversampleV = 1;
+			cfg.GlyphExtraAdvanceX = 1.0f;
+			cfg.GlyphOffset.x = 1.0f;
+			cfg.PixelSnapH = true;
+			cfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_LightHinting;
+			io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
+			ImFont* ui = io.Fonts->AddFontFromMemoryTTF(
+				(void*)SourceSans3_Regular_data,
+				(int)SourceSans3_Regular_size,
+				18.0f, &cfg);
+		}
+
+		{
+			static ImWchar ranges[] = { 0x1, 0x1FFFF, 0 };
+			static ImFontConfig cfg;
+			cfg.OversampleH = cfg.OversampleV = 1;
+			cfg.MergeMode = true;
+			cfg.FontLoaderFlags |= ImGuiFreeTypeLoaderFlags_LoadColor;
+			io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
+			io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\seguiemj.ttf", 16.0f, &cfg, ranges);
+		}
 
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init("#version 460");
