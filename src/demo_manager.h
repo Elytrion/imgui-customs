@@ -17,6 +17,7 @@ class DemoManager
 public:
 	static void Init(GLFWwindow* window)
 	{
+		IMGUI_VERSION;
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
@@ -26,19 +27,18 @@ public:
 		{
 			ImFontConfig cfg;
 			cfg.FontDataOwnedByAtlas = false; // data lives in your compiled binary
-			cfg.OversampleH = cfg.OversampleV = 1;
-			cfg.GlyphExtraAdvanceX = 1.0f;
-			cfg.GlyphOffset.x = 1.0f;
+			cfg.OversampleH = cfg.OversampleV = 2;
+			//cfg.GlyphExtraAdvanceX = 1.0f;
+			//cfg.GlyphOffset.x = 1.0f;
 			cfg.PixelSnapH = true;
-			cfg.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_LightHinting;
+			cfg.FontLoaderFlags |= ImGuiFreeTypeLoaderFlags_LoadColor | ImGuiFreeTypeLoaderFlags_LightHinting;
 			io.Fonts->SetFontLoader(ImGuiFreeType::GetFontLoader());
-			io.Fonts->TexMinHeight = 4096; io.Fonts->TexMinWidth = 4096;
-			ImFont* ui = io.Fonts->AddFontFromMemoryTTF(
+			//io.Fonts->TexMinHeight = 4096; io.Fonts->TexMinWidth = 4096;
+			io.Fonts->AddFontFromMemoryTTF(
 				(void*)SourceSans3_Regular_data,
 				(int)SourceSans3_Regular_size,
 				18.0f, &cfg);
 		}
-
 		{
 			static ImWchar ranges[] = { 0x1, 0x1FFFF, 0 };
 			static ImFontConfig cfg;
@@ -101,4 +101,5 @@ private:
 
 	static void InitModules();
 	static inline std::vector<std::shared_ptr<DemoModule>> demo_modules;
+	static inline float font_size = 16.0f;
 };

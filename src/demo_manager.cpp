@@ -62,16 +62,17 @@ void DemoManager::DrawCustomImguiDemo()
     {
         ImGui::Text("\xf0\x9f\x8d\x89 \xf0\x9f\x8d\x8a \xf0\x9f\x8d\x8b");
         ImGui::Text(u8"\U0001F432 \U0000261D \U0001f21A");
+		ImGui::SliderFloat("Font Size", &font_size, 1.0f, 100.0f, "%.1f");
         ImGui::SeparatorText("USER GUIDE:");
 		ImGui::ShowUserGuide(); //TODO: replace with custom user guide
         ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
     }
-
+	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0], font_size);
     for (auto& module : demo_modules)
     {
 		module->DrawSelector();
 	}
-
+    ImGui::PopFont();
 	ImGui::End();
 
     for (auto& module : demo_modules)

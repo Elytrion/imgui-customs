@@ -44,7 +44,27 @@ FetchContent_Declare(
   GIT_REPOSITORY https://gitlab.freedesktop.org/freetype/freetype.git
   GIT_TAG VER-2-14-0
 )
+# ---- Create a FreeType options override header ----
+set(FT_OVERRIDES_DIR ${CMAKE_CURRENT_BINARY_DIR}/ft_overrides)
+file(MAKE_DIRECTORY ${FT_OVERRIDES_DIR})
+
+# This file turns on ClearType-style subpixel rendering.
+file(WRITE ${FT_OVERRIDES_DIR}/myftoptions.h
+"#pragma once
+#define FT_CONFIG_OPTION_SUBPIXEL_RENDERING
+/* include default options after our overrides (this file does not #undef) */
+#include <freetype/config/ftoption.h>
+")
+
+# Tell the FreeType sub-build to use our override header
+# Note the angle-bracket style include here.
+set(FT_CONFIG_OPTIONS_H "<myftoptions.h>")
+set(FT_EXTRA_INCLUDE_DIR "${FT_OVERRIDES_DIR}")
 FetchContent_MakeAvailable(freetype)  # provides Freetype::Freetype
+# Make sure FreeType sees the override header on its include path,
+# and that FT_CONFIG_OPTIONS_H is defined for that target.
+target_include_directories(freetype PRIVATE "${FT_EXTRA_INCLUDE_DIR}")
+target_compile_definitions(freetype PRIVATE "FT_CONFIG_OPTIONS_H=${FT_CONFIG_OPTIONS_H}")
 
 # ---- Fetch Dear ImGui (no native CMake, so we create a target) ----
 FetchContent_Declare(

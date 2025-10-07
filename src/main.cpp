@@ -40,7 +40,6 @@ int main() {
         std::fprintf(stderr, "Failed to initialize GLAD\n");
         return 1;
     }
-
 	DemoManager::Init(window);
 
     while (!glfwWindowShouldClose(window))
