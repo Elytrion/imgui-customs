@@ -6,6 +6,12 @@ class ProgressBarDemo : public DemoModule
 {
 	float selection_progress_value = 0.0f;
 	bool stop_selection_progress = false;
+    ImGui::BufferingBarConfig cfg;  // user-tweakable config
+    bool   manual = false;          // manual vs auto progress
+    float  progress = 0.0f;         // current target progress [0..1]
+    float  auto_rate_hz = 0.25f;    // cycles per second for auto mode (wraps 0..1)
+    char   label_buf[64] = "buffer_bar_demo";
+	bool   inProgress = true;    // show the dots
 public:
 	ProgressBarDemo() : DemoModule("Progress Bar", "Progress Bar Demo Panel") {}
 protected:
@@ -24,7 +30,7 @@ void ProgressBarDemo::DrawSelectedDemo()
 	ImGui::Separator();
 
 	float t = (float)ImGui::GetTime();
-	ImGui::BufferingBar(("Buffering Bar ##" + selector_name).c_str(), selection_progress_value);
+	ImGui::BufferingBar(("Buffering Bar ##" + selector_name).c_str(), selection_progress_value, true);
 	(ImGui::Checkbox(("Manual Progress ##" + selector_name).c_str(), &stop_selection_progress));
 	if (stop_selection_progress) {
 		ImGui::SliderFloat(("Progress ##" + selector_name).c_str(), &selection_progress_value, 0.0f, 1.0f, "%.3f");
@@ -40,13 +46,6 @@ void ProgressBarDemo::OnPrePanel()
 
 void ProgressBarDemo::DrawDemoPanel()
 {
-    // ---------- Persistent demo state ----------
-    static ImGui::BufferingBarConfig cfg;  // user-tweakable config
-    static bool   manual = false;          // manual vs auto progress
-    static float  progress = 0.0f;         // current target progress [0..1]
-    static float  auto_rate_hz = 0.25f;    // cycles per second for auto mode (wraps 0..1)
-    static char   label_buf[64] = "buffer_bar_demo";
-
     // Reasonable defaults once
     static bool inited = false;
     if (!inited)
@@ -91,7 +90,7 @@ void ProgressBarDemo::DrawDemoPanel()
         ImGui::TextUnformatted("Preview");
         ImGui::SameLine(220.0f);
         ImGui::SetNextItemWidth(-1.0f); // fill remaining width nicely
-        ImGui::BufferingBar(label_buf, progress, cfg);
+        ImGui::BufferingBar(label_buf, progress, inProgress, cfg);
 
         // Status line
         ImGui::Text("Target: %.3f | Smooth: %s | Duration: %.2fs",
@@ -133,6 +132,11 @@ void ProgressBarDemo::DrawDemoPanel()
             ImGui::DragFloat("##auto_rate", &auto_rate_hz, 0.01f, 0.01f, 10.0f, "%.2f");
             DrawHelpTooltip("Cycles per second (wraps 0..1).");
         }
+
+		ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Animate Dots");
+		ImGui::TableSetColumnIndex(1);
+		ImGui::Checkbox("##inProgress", &inProgress);
+		DrawHelpTooltip("Show the moving dots (right region).");
 
         // ---------- Geometry ----------
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Size (W,H)");

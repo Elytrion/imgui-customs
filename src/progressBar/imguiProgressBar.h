@@ -25,7 +25,7 @@ namespace ImGui
 		ImU32  col_circles = 0;             // moving dots color (right region) [By default, same as col_bar_bg]
     };
 
-    inline bool BufferingBar(const char* label, float value, const BufferingBarConfig& cfg = {})
+    inline bool BufferingBar(const char* label, float value, bool inProgress, const BufferingBarConfig& cfg = {})
     {
         ImGuiWindow* window = GetCurrentWindow();
         if (window->SkipItems)
@@ -123,7 +123,7 @@ namespace ImGui
         }
 
         // --- Draw circles (right region) -------------------------------------
-        if (clamped_span > 0.0f && cfg.num_circles > 0 && circle_width > 0.0f)
+        if (clamped_span > 0.0f && cfg.num_circles > 0 && circle_width > 0.0f && inProgress)
         {
             const float r = size.y * 0.5f;
             const float period = (cfg.circle_period > 0.0f) ? cfg.circle_period : 1e-6f;
