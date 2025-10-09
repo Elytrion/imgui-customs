@@ -19,7 +19,7 @@ class TweenDemo : public DemoModule
     bool ch_bg = true;      ImVec4  bg_min = ImVec4(0.14f, 0.14f, 0.16f, 1.0f), bg_max = ImVec4(0.35f, 0.22f, 0.70f, 1.0f);
     bool ch_text = false;   float   a_min = 0.40f, a_max = 1.00f;   // text alpha
 public:
-	TweenDemo() : DemoModule("Imgui Tween", "Tween Demo Panel") {}
+	TweenDemo() : DemoModule("Tweening", "Tween Demo Panel") {}
 protected:
 	void DrawSelectedDemo();
     void OnPrePanel() override;

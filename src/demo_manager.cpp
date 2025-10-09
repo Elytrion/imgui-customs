@@ -57,13 +57,21 @@ void DemoManager::DrawCustomImguiDemo()
 {
 	bool drawn = ImGui::Begin(custom_demo_window_name, nullptr);
     if (!drawn) { ImGui::End(); return; }
-
+    ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(0, 171, 120, 255));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 194, 133, 255));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(0, 185, 130, 255));
     if (ImGui::CollapsingHeader("Help"))
     {
         ImGui::SeparatorText("USER GUIDE:");
-		ImGui::ShowUserGuide(); //TODO: replace with custom user guide
+        float t = (float)ImGui::GetTime();
+        float hue = fmodf(t * 0.4f, 1.0f);
+        ImVec4 col = ImColor::HSV(hue, 1.0f, 1.0f); 
+        ImGui::PushStyleColor(ImGuiCol_Text, col);
+        ImGui::Text("Placeholder Text");
+		ImGui::PopStyleColor();
         ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 3.0f);
     }
+	ImGui::PopStyleColor(3);
 
     for (auto& module : demo_modules)
     {
