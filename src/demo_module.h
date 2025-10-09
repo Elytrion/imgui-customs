@@ -53,3 +53,13 @@ inline void DemoModule::DrawPopoutPanel()
 	ImGui::End();
 	OnPostPanel();
 }
+
+static void DrawPlaceholderText()
+{
+	float t = (float)ImGui::GetTime();
+	float hue = fmodf(t * 0.4f, 1.0f);
+	ImVec4 col = ImColor::HSV(hue, 1.0f, 1.0f);
+	ImGui::PushStyleColor(ImGuiCol_Text, col);
+	ImGui::Text("Placeholder Text");
+	ImGui::PopStyleColor();
+}

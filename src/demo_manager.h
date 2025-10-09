@@ -71,3 +71,4 @@ private:
 	static void InitModules();
 	static inline std::vector<std::shared_ptr<DemoModule>> demo_modules;
 };
+
