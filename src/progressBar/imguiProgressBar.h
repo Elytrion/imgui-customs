@@ -8,24 +8,25 @@ namespace ImGui
     struct BufferingBarConfig
     {
         // Geometry
-        ImVec2 size = ImVec2(0, 0);   // (0,0) -> width = ContentRegionAvail.x, height = FrameHeight()
+        ImVec2 size = ImVec2(0, 5.0f);   // (0,0) -> width = ContentRegionAvail.x, height = FrameHeight()
         float  rounding = 0.0f;           // track rounding (0 = square)
         // Circles area
         int    num_circles = 3;              // how many moving dots
-        float  circle_span = 0.30f;          // fraction of the total width reserved for circles [0..0.5], 0 = no circles
+        float  circle_span = 0.20f;          // fraction of the total width reserved for circles [0..0.5], 0 = no circles
         float  circle_period = 1.50f;          // seconds for a dot to traverse the circles region (loop)
         // Progress animation
-        bool   smooth_progress = false;          // true = lerp to target value over time
-        float  smooth_duration = 0.15f;          // seconds to lerp from current->target (used if smooth_progress)
+        bool   smooth_progress = true;          // true = lerp to target value over time
+        float  smooth_duration = 0.1f;          // seconds to lerp from current->target (used if smooth_progress)
         float (*easing)(float) = nullptr;        // easing for smoothing; nullptr = linear (t)
-		bool snap_finish{ true };				 // (used in smoothing) if true, if progress set to 1.0, snap to 1.0 immediately
+		bool   snap_finish{ true };				 // (used in smoothing) if true, if progress set to 1.0, snap to 1.0 immediately [Makes completions more responsive]
+		bool   snap_start{ true };				 // (used in smoothing) if true, if progress set to 0.0, snap to 0.0 immediately [Makes resets more responsive]
         // Colors (0 means "derive from style" each frame)
         ImU32  col_bar_bg = 0;              // background track (left region)
         ImU32  col_bar_fg = 0;              // progress fill (left region)
-        ImU32  col_circles = 0;              // moving dots color (right region)
+		ImU32  col_circles = 0;              // moving dots color (right region) [By default, same as col_bar_bg]
     };
 
-    inline bool BufferingBarEx(const char* label, float value, const BufferingBarConfig& cfg = {})
+    inline bool BufferingBar(const char* label, float value, const BufferingBarConfig& cfg = {})
     {
         ImGuiWindow* window = GetCurrentWindow();
         if (window->SkipItems)
@@ -61,48 +62,47 @@ namespace ImGui
         // --- Colors (from style if not provided) -----------------------------
         ImU32 col_bar_bg = cfg.col_bar_bg ? cfg.col_bar_bg : GetColorU32(ImGuiCol_FrameBg);
         ImU32 col_bar_fg = cfg.col_bar_fg ? cfg.col_bar_fg : GetColorU32(ImGuiCol_PlotHistogram);
-        ImU32 col_circles = cfg.col_circles ? cfg.col_circles : GetColorU32(ImGuiCol_TextDisabled);
+        ImU32 col_circles = cfg.col_circles ? cfg.col_circles : GetColorU32(ImGuiCol_FrameBg);
 
         // --- Progress value (optionally smoothed) ----------------------------
         float target = ImSaturate(value);
-
         float display = target; // default: immediate
+
         if (cfg.smooth_progress && cfg.smooth_duration > 0.0f)
         {
-            // Storage keys derived from id (unique per widget instance)
             ImGuiStorage* st = GetStateStorage();
-            const ImGuiID kDisplay = id;         // current displayed value
-            const ImGuiID kStartVal = id + 1;     // anim start value
-            const ImGuiID kStartTime = id + 2;     // anim start time
-            const ImGuiID kPrevTarget = id + 3;     // previously seen target
+            const ImGuiID kDisplay = id;
+            const ImGuiID kLastTime = id + 10;
 
-            float prev_target = st->GetFloat(kPrevTarget, -1.0f);
-            float cur_display = st->GetFloat(kDisplay, target); // init to target on first frame
+            const float kEps = 1e-5f;
+            const bool snap_up = cfg.snap_finish && (target >= 1.0f - kEps);
+            const bool snap_down = cfg.snap_start && (target <= 0.0f + kEps);
 
-            // If target changed, (re)start a lerp from current display
-            if (prev_target < 0.0f || fabsf(prev_target - target) > 1e-6f)
+            if (snap_up || snap_down)
             {
-                st->SetFloat(kStartVal, cur_display);
-                st->SetFloat(kStartTime, (float)g.Time);
-                st->SetFloat(kPrevTarget, target);
-            }
-
-            const float t = ((float)g.Time - st->GetFloat(kStartTime, (float)g.Time)) / cfg.smooth_duration;
-            const float t01 = ImSaturate(t);
-            const float eased = cfg.easing ? cfg.easing(t01) : t01;
-            display = ImLerp(st->GetFloat(kStartVal, target), target, eased);
-
-            // Snap to target when done
-            if (t01 >= 1.0f)
-            {
+                // Snap to the endpoint immediately
                 display = target;
                 st->SetFloat(kDisplay, display);
-                st->SetFloat(kStartVal, display);
-                st->SetFloat(kPrevTarget, target);
+                st->SetFloat(kLastTime, (float)g.Time);
             }
             else
             {
+                // Continuous chase integrator (stable when target moves every frame)
+                float prev_display = st->GetFloat(kDisplay, target);
+                float last_time = st->GetFloat(kLastTime, (float)g.Time);
+
+                float now = (float)g.Time;
+                float dt = ImMax(0.0f, now - last_time);
+
+                // Convert "duration to feel mostly there" into an exponential smoothing factor
+                float tau = ImMax(1e-6f, cfg.smooth_duration);
+                float alpha = 1.0f - expf(-dt / tau);            // [0..1]
+                float w = cfg.easing ? cfg.easing(alpha) : alpha;
+
+                display = ImLerp(prev_display, target, w);
+
                 st->SetFloat(kDisplay, display);
+                st->SetFloat(kLastTime, now);
             }
         }
 
