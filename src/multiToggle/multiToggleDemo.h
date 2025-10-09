@@ -28,23 +28,6 @@ void MultiToggleDemo::OnPrePanel()
 
 void MultiToggleDemo::DrawDemoPanel()
 {    
-    auto EditColorU32 = [](const char* label, ImU32* c) {
-        ImVec4 v = ImGui::ColorConvertU32ToFloat4(*c);
-        bool changed = ImGui::ColorEdit4(label, &v.x, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs);
-        if (changed) *c = ImGui::GetColorU32(v);
-        return changed;
-        };
-    auto HelpTooltip = [](const char* text) {
-        ImGui::SameLine(); ImGui::TextDisabled("(?)");
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
-            ImGui::BeginTooltip();
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 42.0f);
-            ImGui::TextUnformatted(text);
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
-        };
-
     // --- Persistent demo state ---
     static ImGui::MultiToggleConfig cfg;               // UI-configurable
     static int current_index = 0;                      // selected entry
@@ -124,23 +107,23 @@ void MultiToggleDemo::DrawDemoPanel()
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Size (W,H)");
         ImGui::TableSetColumnIndex(1);
         ImGui::DragFloat2("##size", &cfg.size.x, 1.0f, 0.0f, 2000.0f, "%.1f");
-        HelpTooltip("Set (0,0) for auto height = 1.35 * FrameHeight and width fills content region.\n"
+        DrawHelpTooltip("Set (0,0) for auto height = 1.35 * FrameHeight and width fills content region.\n"
             "When unequal sections are enabled, width also accounts for gaps and measured text.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Track Rounding");
         ImGui::TableSetColumnIndex(1);
         ImGui::DragFloat("##rounding", &cfg.rounding, 0.2f, -1.0f, 200.0f, "%.1f");
-        HelpTooltip("-1 = half height (pill).");
+        DrawHelpTooltip("-1 = half height (pill).");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Plate Padding");
         ImGui::TableSetColumnIndex(1);
         ImGui::SliderFloat("##plate_pad", &cfg.plate_pad, 0.0f, 24.0f, "%.1f");
-        HelpTooltip("Inner padding around the moving plate (left/right & top/bottom).");
+        DrawHelpTooltip("Inner padding around the moving plate (left/right & top/bottom).");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Equal Sections");
         ImGui::TableSetColumnIndex(1);
         ImGui::Checkbox("##equal", &cfg.equal_sections);
-        HelpTooltip("ON = evenly split track width into N sections.\nOFF = section width from measured text.");
+        DrawHelpTooltip("ON = evenly split track width into N sections.\nOFF = section width from measured text.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Gap (unequal only)");
         ImGui::TableSetColumnIndex(1);
@@ -152,22 +135,22 @@ void MultiToggleDemo::DrawDemoPanel()
         // COLORS
         // =========================
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Track Color");
-        ImGui::TableSetColumnIndex(1); EditColorU32("##track_col", &cfg.col_track);
+        ImGui::TableSetColumnIndex(1); DrawEditColorU32("##track_col", &cfg.col_track);
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Track Hover");
-        ImGui::TableSetColumnIndex(1); EditColorU32("##track_hover", &cfg.col_track_hover);
+        ImGui::TableSetColumnIndex(1); DrawEditColorU32("##track_hover", &cfg.col_track_hover);
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Plate Color");
-        ImGui::TableSetColumnIndex(1); EditColorU32("##plate_col", &cfg.col_plate);
+        ImGui::TableSetColumnIndex(1); DrawEditColorU32("##plate_col", &cfg.col_plate);
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Plate Hover");
-        ImGui::TableSetColumnIndex(1); EditColorU32("##plate_hover", &cfg.col_plate_hover);
+        ImGui::TableSetColumnIndex(1); DrawEditColorU32("##plate_hover", &cfg.col_plate_hover);
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Text Inactive");
-        ImGui::TableSetColumnIndex(1); EditColorU32("##text_inactive", &cfg.col_text);
+        ImGui::TableSetColumnIndex(1); DrawEditColorU32("##text_inactive", &cfg.col_text);
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Text Active");
-        ImGui::TableSetColumnIndex(1); EditColorU32("##text_active", &cfg.col_text_active);
+        ImGui::TableSetColumnIndex(1); DrawEditColorU32("##text_active", &cfg.col_text_active);
 
         // =========================
         // ANIMATION
@@ -175,7 +158,7 @@ void MultiToggleDemo::DrawDemoPanel()
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Anim Speed (sec)");
         ImGui::TableSetColumnIndex(1);
         ImGui::DragFloat("##anim_speed", &cfg.anim_speed, 0.01f, 0.0f, 2.0f, "%.2f");
-        HelpTooltip("Time to traverse fully from one option to another.\n0.0 = instant snap.");
+        DrawHelpTooltip("Time to traverse fully from one option to another.\n0.0 = instant snap.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Easing");
         ImGui::TableSetColumnIndex(1);

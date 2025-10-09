@@ -63,3 +63,25 @@ static void DrawPlaceholderText()
 	ImGui::Text("Placeholder Text");
 	ImGui::PopStyleColor();
 }
+
+static void DrawHelpTooltip(const char* tooltip)
+{
+	ImGui::SameLine();
+	ImGui::TextDisabled("(?)");
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+	{
+		ImGui::BeginTooltip();
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 42.0f);
+		ImGui::TextUnformatted(tooltip);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
+}
+
+static bool DrawEditColorU32(const char* label, ImU32* c)
+{
+	ImVec4 v = ImGui::ColorConvertU32ToFloat4(*c);
+	bool changed = ImGui::ColorEdit4(label, &v.x, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_NoInputs);
+	if (changed) *c = ImGui::GetColorU32(v);
+	return changed;
+};

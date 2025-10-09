@@ -18,6 +18,11 @@ protected:
 inline void SpinnerDemo::DrawSelectedDemo()
 {
     ImGui::Text("Spinner Showcase");
+    ImGui::TextWrapped(
+        "This demo shows a variety of spinners, including the default Material-style one "
+        "and several variants with different configurations. "
+		"This widget was inspired by:");
+    ImGui::TextLink("https://github.com/ocornut/imgui/issues/1901#issuecomment-1951343738");
     ImGui::Separator();
 
     const float line_width = 250.0f;

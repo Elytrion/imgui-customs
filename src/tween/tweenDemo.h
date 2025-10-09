@@ -106,20 +106,6 @@ void TweenDemo::OnPrePanel()
 
 void TweenDemo::DrawDemoPanel()
 {
-    auto HelpTooltip = [](const char* text)
-    {
-        ImGui::SameLine();
-        ImGui::TextDisabled("(?)");
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
-        {
-            ImGui::BeginTooltip();
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 42.0f);
-            ImGui::TextUnformatted(text);
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
-	};
-
     ImGui::TextUnformatted("Tween Playground");
     ImGui::Separator();
 
@@ -223,7 +209,7 @@ void TweenDemo::DrawDemoPanel()
         if (drive_mode == 1) {
             ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Manual Inside");
             ImGui::TableSetColumnIndex(1);
-            ImGui::Checkbox("##inside", &inside_manual); HelpTooltip("Toggle to send the tween from min->max (true) or max->min (false).");
+            ImGui::Checkbox("##inside", &inside_manual); DrawHelpTooltip("Toggle to send the tween from min->max (true) or max->min (false).");
         }
         if (drive_mode == 2) {
             ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Auto Pause (s)");
@@ -252,7 +238,7 @@ void TweenDemo::DrawDemoPanel()
                 }
                 ImGui::EndCombo();
             }
-            HelpTooltip("Different curves for the normalized time t in [0,1].");
+            DrawHelpTooltip("Different curves for the normalized time t in [0,1].");
         }
 
         // CHANNELS
@@ -262,7 +248,7 @@ void TweenDemo::DrawDemoPanel()
         ImGui::TableSetColumnIndex(1);
         ImGui::Checkbox("##ch_pos", &ch_pos); ImGui::SameLine();
         ImGui::DragFloatRange2("##pos_mm", &pos_min, &pos_max, 1.0f, -400.0f, 400.0f, "min=%.0f", "max=%.0f");
-        HelpTooltip("Horizontal offset applied to the tile.");
+        DrawHelpTooltip("Horizontal offset applied to the tile.");
 
         ImGui::TableNextRow(); ImGui::TableSetColumnIndex(0); ImGui::Text("Size (W,H)");
         ImGui::TableSetColumnIndex(1);
