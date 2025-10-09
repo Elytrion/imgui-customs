@@ -8,22 +8,21 @@ namespace ImGui
     struct BufferingBarConfig
     {
         // Geometry
-        ImVec2 size = ImVec2(0, 5.0f);   // (0,0) -> width = ContentRegionAvail.x, height = FrameHeight()
-        float  rounding = 0.0f;           // track rounding (0 = square)
+		ImVec2 size = ImVec2(0, 5.0f);      // (0,0) -> width = ContentRegionAvail.x, height = FrameHeight() [default height = 5, looks best]
+        float  rounding = 0.0f;             // track rounding (0 = square)
         // Circles area
-        int    num_circles = 3;              // how many moving dots
-        float  circle_span = 0.20f;          // fraction of the total width reserved for circles [0..0.5], 0 = no circles
-        float  circle_period = 1.50f;          // seconds for a dot to traverse the circles region (loop)
+        int    num_circles = 3;             // how many moving dots
+        float  circle_span = 0.20f;         // fraction of the total width reserved for circles [0..0.5], 0 = no circles
+        float  circle_period = 1.50f;       // seconds for a dot to traverse the circles region (loop)
         // Progress animation
-        bool   smooth_progress = true;          // true = lerp to target value over time
-        float  smooth_duration = 0.1f;          // seconds to lerp from current->target (used if smooth_progress)
-        float (*easing)(float) = nullptr;        // easing for smoothing; nullptr = linear (t)
-		bool   snap_finish{ true };				 // (used in smoothing) if true, if progress set to 1.0, snap to 1.0 immediately [Makes completions more responsive]
-		bool   snap_start{ true };				 // (used in smoothing) if true, if progress set to 0.0, snap to 0.0 immediately [Makes resets more responsive]
+        bool   smooth_progress = true;      // true = lerp to target value over time
+        float  smooth_duration = 0.1f;      // seconds to lerp from current->target (used if smooth_progress)
+		bool   snap_finish{ true };			// (used in smoothing) if true, if progress set to 1.0, snap to 1.0 immediately [Makes completions more responsive]
+		bool   snap_start{ true };		    // (used in smoothing) if true, if progress set to 0.0, snap to 0.0 immediately [Makes resets more responsive]
         // Colors (0 means "derive from style" each frame)
         ImU32  col_bar_bg = 0;              // background track (left region)
         ImU32  col_bar_fg = 0;              // progress fill (left region)
-		ImU32  col_circles = 0;              // moving dots color (right region) [By default, same as col_bar_bg]
+		ImU32  col_circles = 0;             // moving dots color (right region) [By default, same as col_bar_bg]
     };
 
     inline bool BufferingBar(const char* label, float value, const BufferingBarConfig& cfg = {})
@@ -97,7 +96,7 @@ namespace ImGui
                 // Convert "duration to feel mostly there" into an exponential smoothing factor
                 float tau = ImMax(1e-6f, cfg.smooth_duration);
                 float alpha = 1.0f - expf(-dt / tau);            // [0..1]
-                float w = cfg.easing ? cfg.easing(alpha) : alpha;
+                float w = alpha;
 
                 display = ImLerp(prev_display, target, w);
 
