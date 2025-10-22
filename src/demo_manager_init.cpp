@@ -7,6 +7,7 @@
 #include "multiToggle/multiToggleDemo.h"
 #include "tween/tweenDemo.h"
 #include "progressBar/progressBarDemo.h"
+#include "popupstack/popupStackDemo.h"
 
 void DemoManager::InitModules()
 {
@@ -17,4 +18,5 @@ void DemoManager::InitModules()
 	RegisterDemoModule(std::make_shared<MultiToggleDemo>());
 	RegisterDemoModule(std::make_shared<TweenDemo>());
 	RegisterDemoModule(std::make_shared<ProgressBarDemo>());
+	RegisterDemoModule(std::make_shared<PopupStackDemo>());
 }

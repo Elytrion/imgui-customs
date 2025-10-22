@@ -9,12 +9,14 @@ public:
 
 	void DrawSelector();
 	void DrawPopoutPanel();
+	void virtual BackgroundUpdate() {};
 
 	std::string selector_name = "Demo Module";
 	std::string panel_name = "Demo Panel";
 	bool popout_open = false;
 	int panel_flags{ 0 };
 protected:
+
 	void virtual DrawSelectedDemo() = 0;
 	void virtual OnPrePanel() {};
 	void virtual OnPreDraw() {};
