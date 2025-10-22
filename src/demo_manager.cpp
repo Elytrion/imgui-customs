@@ -77,7 +77,9 @@ void DemoManager::DrawCustomImguiDemo()
 
     for (auto& module : demo_modules)
     {
-        module->DrawPopoutPanel();
+        module->BackgroundUpdate();
+		if (module->has_popout)
+            module->DrawPopoutPanel();
 	}
 }
 
