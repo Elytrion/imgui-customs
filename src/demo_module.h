@@ -17,7 +17,10 @@ public:
 	bool has_popout = true; // Set to false to disable popout demo panel functionality
 	int panel_flags{ 0 };
 protected:
+	void virtual OnPreSelectable() {};
 	void virtual DrawSelectedDemo() = 0;
+	void virtual OnPostSelectable() {};
+
 	void virtual OnPrePanel() {};
 	void virtual OnPreDraw() {};
 	void virtual DrawDemoPanel() {};
@@ -27,17 +30,18 @@ protected:
 
 inline void DemoModule::DrawSelector()
 {
+	OnPreSelectable();
 	if (ImGui::CollapsingHeader(selector_name.c_str()))
 	{
 		DrawSelectedDemo();
-
-		if (!has_popout)
-			return;
-
-		ImGui::Separator();
-		if (ImGui::Button(("Open Demo Panel##" + selector_name).c_str()))
-			popout_open = true;
+		if (has_popout)
+		{
+			ImGui::Separator();
+			if (ImGui::Button(("Open Demo Panel##" + selector_name).c_str()))
+				popout_open = true;
+		}
 	}
+	OnPostSelectable();
 }
 
 inline void DemoModule::DrawPopoutPanel()
