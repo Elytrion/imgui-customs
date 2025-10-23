@@ -115,6 +115,7 @@ private:
 	uint64_t m_token_counter{ 0 };      // unique token for each popup handle
 	bool     m_pending_clean{ false };  // true => clean up handles after next DrawAll()
 
+    int         indexOfActive(PopupHandle h) const;
 	std::string makeLabel(const std::string& title);                    // Create a unique label for the popup, e.g. "<title>###popup_<id>"
 	void        setupNext(const PopupDef& d);                           // Setup next popup position and viewport based on the PopupDef configuration
 	void        drawFrom(size_t k, std::vector<size_t>& to_remove);     // Recursively draw popups starting from index k, removing closed popups from the stack

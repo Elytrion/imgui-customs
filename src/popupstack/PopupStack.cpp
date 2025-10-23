@@ -192,15 +192,25 @@ void PopupStack::setupNext(const PopupDef& d)
     ImGui::SetNextWindowViewport(vp->ID);
 }
 
+int PopupStack::indexOfActive(PopupHandle h) const
+{
+    if (!h) return -1;
+    for (int i = 0; i < (int)m_drawStack.size(); ++i)
+        if (m_drawStack[(size_t)i].handle == h)
+            return i;
+    return -1;
+}
+
 void PopupStack::drawFrom(size_t k, std::vector<size_t>& to_remove)
 {
     if (k >= m_drawStack.size())
         return;
 
     ActiveItem& a = m_drawStack[k];
+	const PopupHandle s_handle = m_drawStack[k].handle;
 
     // Lost definition? Remove and (crucially) try to continue the chain.
-    auto it = m_popupDefs.find(a.handle);
+    auto it = m_popupDefs.find(s_handle);
     if (it == m_popupDefs.end())
     {
         to_remove.push_back(k);
@@ -271,7 +281,31 @@ void PopupStack::drawFrom(size_t k, std::vector<size_t>& to_remove)
     }
 
     // User content
+    const size_t size_before = m_drawStack.size();
     if (d.draw) d.draw();
+
+	// if this popup was marked as closed during its own draw call
+	// we have to handle it here to allow for nested popups to open/close properly.
+    int i = indexOfActive(s_handle);
+    if (i >= 0 && i < m_drawStack.size())
+    {
+		ActiveItem& ai = m_drawStack[i];
+        if (ai.close_requested)
+        {
+			// if a parent is closed before a child is even open
+			// and the child was added during the parent's draw call
+			// we assume that the child will open anyways
+            for (size_t t = size_before; t < m_drawStack.size(); ++t)
+            {
+                if (!m_drawStack[t].opened_once)
+                    m_drawStack[t].defer_open = true;
+            }
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            to_remove.push_back(i);
+			return; // do not recurse to children, this is closed
+        }
+    }
 
     // Draw child while parent is still open
     if (k + 1 < m_drawStack.size())

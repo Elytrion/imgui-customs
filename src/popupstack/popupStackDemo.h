@@ -6,6 +6,7 @@ class PopupStackDemo : public DemoModule
 {
 	PopupStack m_popupStack;
 	PopupHandle pA, pB;
+	PopupHandle genericPopup;
 public:
 	PopupStackDemo() : DemoModule("Popup Stack", "Popup Stack Demo Panel") {}
 	void BackgroundUpdate() override;
@@ -24,30 +25,21 @@ inline void PopupStackDemo::DrawSelectedDemo()
 {
 	if (ImGui::Button("Open A"))
 	{
-		pA = m_popupStack.Open("Popup_A", PopupPreset::AUTO_CENTER, [&]() {
+		genericPopup = m_popupStack.Open("Popup_A", PopupPreset::AUTO_CENTER, [&]() {
 			ImGui::Text("Hello from A");
 
-			if (ImGui::Button("Open B"))
+			if (ImGui::Button("Close A"))
 			{
-				pB = m_popupStack.Open("Popup_B", PopupPreset::AUTO_CENTER, [&]() {
-					ImGui::Text("Hello from B");
-					if (ImGui::Button("Close A"))
+				m_popupStack.Close(genericPopup);
+				genericPopup = m_popupStack.Open("Popup_B", PopupPreset::AUTO_CENTER, [&]()
 					{
-						m_popupStack.Close(pA);
-						pB = nullptr;
-					}
-					ImGui::SameLine();
+					ImGui::Text("Hello from B");
 					if (ImGui::Button("Close B"))
 					{
-						m_popupStack.Close(pB);
-						pB = nullptr;
+						m_popupStack.Close(genericPopup);
+						genericPopup = nullptr;
 					}
 				});
-			}
-			if (ImGui::Button("Close"))
-			{
-				m_popupStack.Close(pA);
-				pA = nullptr;
 			}
 		});
 	}
