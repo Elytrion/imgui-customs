@@ -18,13 +18,73 @@ class TweenDemo : public DemoModule
     bool ch_round = true;   float   r_min = 4.0f, r_max = 16.0f;
     bool ch_bg = true;      ImVec4  bg_min = ImVec4(0.14f, 0.14f, 0.16f, 1.0f), bg_max = ImVec4(0.35f, 0.22f, 0.70f, 1.0f);
     bool ch_text = false;   float   a_min = 0.40f, a_max = 1.00f;   // text alpha
+	float  width_aw_dur = 0.15f;         // X expand/shrink duration for the animated window
+	float  height_aw_dur = 0.15f;         // Y expand/shrink duration for the animated window
 public:
 	TweenDemo() : DemoModule("Tweening", "Tween Demo Panel") {}
 protected:
 	void DrawSelectedDemo();
     void OnPrePanel() override;
 	void DrawDemoPanel() override;
+
+	void AnimatedWindowDemo();
 };
+
+void TweenDemo::AnimatedWindowDemo()
+{
+    // Example setup
+    static bool want_open = false;           
+    const ImVec2 target_size = ImVec2(450, 300);
+    const float  eps = 1e-3f;
+    auto ease_out_cubic = [](float t) { return 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t); };
+
+    // X should be "inside" if we want_open OR while Y is still visible (so X lingers until Y is gone)
+    float y_prog_peek = ImGui::Tween<float>("MyWin/PeekY", want_open, height_aw_dur, height_aw_dur,
+        0.0f, 1.0f, ImGuiTweenFlags_StartMin, ease_out_cubic);
+    bool inside_x = want_open || (y_prog_peek > eps);
+    // Compute X progress
+    float x_prog = ImGui::Tween<float>("MyWin/X", inside_x, width_aw_dur, width_aw_dur,
+        0.0f, 1.0f, ImGuiTweenFlags_StartMin, ease_out_cubic);
+
+    // Y should be "inside" only once X is fully open when opening; during closing it follows want_open immediately
+    bool inside_y = want_open && (x_prog >= 1.0f - eps);
+    // Compute Y progress
+    float y_prog = ImGui::Tween<float>("MyWin/Y", inside_y, height_aw_dur, height_aw_dur,
+        0.0f, 1.0f, ImGuiTweenFlags_StartMin, ease_out_cubic);
+
+    float w = ImMax(1.0f, target_size.x * x_prog);
+    float h = ImMax(1.0f, target_size.y * y_prog);
+
+    // Only draw while opening/closing or open
+    bool visible = want_open || (x_prog > eps) || (y_prog > eps);
+    if (visible)
+    {
+        // Pin position if you like
+        ImGui::SetNextWindowSize(ImVec2(w, h));
+        const ImVec2 pos = ImGui::GetWindowPos();
+        ImGui::SetNextWindowPos(ImVec2(pos.x - target_size.x, pos.y), ImGuiCond_Always);
+
+        // Optional: block inputs while "closed" in an axis so you don't interact with clipped content
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize;
+        if (y_prog < 1.0f) flags |= ImGuiWindowFlags_NoScrollbar; // reduce jitter
+        // You can add NoInputs when almost closed, etc.
+
+        if (ImGui::Begin("Animated Window", nullptr, flags))
+        {
+            ImGui::Text("X prog: %.2f, Y prog: %.2f", x_prog, y_prog);
+			ImGui::InputFloat("Width Anim Duration", &width_aw_dur, 0.01f, 0.1f, "%.2f");
+			ImGui::InputFloat("Height Anim Duration", &height_aw_dur, 0.01f, 0.1f, "%.2f");
+        }
+        ImGui::End();
+    }
+
+    // Somewhere in your UI, toggle `want_open`
+    if (ImGui::Button(want_open ? "Close" : "Open"))
+        want_open = !want_open;
+    ImGui::SameLine();
+	ImGui::Text("Open/Close Animated Window");
+
+}
 
 void TweenDemo::DrawSelectedDemo()
 {
@@ -35,8 +95,7 @@ void TweenDemo::DrawSelectedDemo()
     // - soft shadow offset (ImVec2)
     //
     // Everything is driven by the same `inside` (hover) boolean but uses
-    // independent IDs so tweens can run concurrently (per your Tween design).
-
+    // independent IDs so tweens can run concurrently
     ImGui::TextUnformatted("Tween Showcase");
     ImGui::Separator();
 
@@ -97,6 +156,9 @@ void TweenDemo::DrawSelectedDemo()
     ImGui::TextWrapped("This demo shows a simple interactive card that tweens multiple properties on hover. "
         "The tweens are all independent but share the same hover state. "
 		"The code is in the TweenDemo::DrawSelectedDemo() function.");
+
+    ImGui::SeparatorText("Addition Tween Demos");
+    AnimatedWindowDemo();
 }
 
 void TweenDemo::OnPrePanel()
@@ -306,5 +368,7 @@ void TweenDemo::DrawDemoPanel()
     ImGui::BulletText("Enable Text Alpha to demo independent channels animating together.");
     ImGui::BulletText("Switch Drive to Auto and add a Pause to see ping-pong tweening.");
 }
+
+
 
 
