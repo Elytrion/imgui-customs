@@ -19,7 +19,7 @@ namespace ImGui
 		std::function<float(float)> easeFunc = nullptr,
 		std::function<T(const T&, const T&, float)> lerpFunc = [](const T& a, const T& b, float t) { return ImLerp(a, b, t); })
 	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		ImGuiWindow* window = ImGui::GetCurrentWindowRead();
 		ImGuiStorage* storage = window->DC.StateStorage;
 		ImGuiID       keyBase = window->GetID(id);
 		ImGuiID       keyTime = keyBase ^ 0x1111; // stores start-time of current tween

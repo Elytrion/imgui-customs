@@ -1,10 +1,10 @@
 #pragma once
-#include "PopupStack.h"
+#include "PopupManager.h"
 #include "demo_module.h"
 
 class PopupStackDemo : public DemoModule
 {
-	PopupStack m_popupStack;
+	PopupManager m_popupManager;
 	PopupHandle pA, pB;
 	PopupHandle genericPopup;
 public:
@@ -18,25 +18,38 @@ protected:
 
 inline void PopupStackDemo::BackgroundUpdate()
 {
-	m_popupStack.DrawAll();
+	m_popupManager.DrawAll();
 }
 
 inline void PopupStackDemo::DrawSelectedDemo()
 {
+	if (ImGui::Button("Open Demo Popup"))
+	{
+		genericPopup = m_popupManager.Open("Demo Popup", PopupPreset::AUTO_CENTER, [&]() {
+			ImGui::Text("Hello from the demo popup!");
+			if (ImGui::Button("Close"))
+			{
+				m_popupManager.Close(genericPopup);
+				genericPopup = nullptr;
+			}
+			});
+	}
+
+
 	if (ImGui::Button("Open A"))
 	{
-		genericPopup = m_popupStack.Open("Popup_A", PopupPreset::AUTO_CENTER, [&]() {
+		genericPopup = m_popupManager.Open("Popup_A", PopupPreset::AUTO_CENTER, [&]() {
 			ImGui::Text("Hello from A");
 
 			if (ImGui::Button("Close A"))
 			{
-				m_popupStack.Close(genericPopup);
-				genericPopup = m_popupStack.Open("Popup_B", PopupPreset::AUTO_CENTER, [&]()
+				m_popupManager.Close(genericPopup);
+				genericPopup = m_popupManager.Open("Popup_B", PopupPreset::AUTO_CENTER, [&]()
 					{
 					ImGui::Text("Hello from B");
 					if (ImGui::Button("Close B"))
 					{
-						m_popupStack.Close(genericPopup);
+						m_popupManager.Close(genericPopup);
 						genericPopup = nullptr;
 					}
 				});
@@ -47,22 +60,22 @@ inline void PopupStackDemo::DrawSelectedDemo()
 
 	if (ImGui::Button("Run Popup Sequence"))
 	{
-		pA = m_popupStack.Open("Popup_A", PopupPreset::AUTO_CENTER, [&]() {
+		pA = m_popupManager.Open("Popup_A", PopupPreset::AUTO_CENTER, [&]() {
 				ImGui::Text("Hello from A");
 				if (ImGui::Button("Close"))
 				{
-					m_popupStack.Close(pA);
+					m_popupManager.Close(pA);
 					pA = nullptr;
 				}
 			});
 
-		m_popupStack.Close(pA);
+		m_popupManager.Close(pA);
 
-		pB = m_popupStack.Open("Popup_B", PopupPreset::AUTO_CENTER, [&]() {
+		pB = m_popupManager.Open("Popup_B", PopupPreset::AUTO_CENTER, [&]() {
 				ImGui::Text("Hello from B");
 				if (ImGui::Button("Close"))
 				{
-					m_popupStack.Close(pB);
+					m_popupManager.Close(pB);
 					pB = nullptr;
 				}
 			});
