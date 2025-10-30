@@ -9,32 +9,39 @@ public:
 
 	void DrawSelector();
 	void DrawPopoutPanel();
-	void virtual BackgroundUpdate() {};
+	void virtual BackgroundUpdate() {}; // Called once per frame, regardless of panel open state
 
 	std::string selector_name = "Demo Module";
 	std::string panel_name = "Demo Panel";
 	bool popout_open = false;
+	bool has_popout = true; // Set to false to disable popout demo panel functionality
 	int panel_flags{ 0 };
 protected:
-
+	void virtual OnPreSelectable() {};
 	void virtual DrawSelectedDemo() = 0;
+	void virtual OnPostSelectable() {};
+
 	void virtual OnPrePanel() {};
 	void virtual OnPreDraw() {};
-	void virtual DrawDemoPanel() = 0;
+	void virtual DrawDemoPanel() {};
 	void virtual OnPostDraw() {};
 	void virtual OnPostPanel() {};
 };
 
 inline void DemoModule::DrawSelector()
 {
+	OnPreSelectable();
 	if (ImGui::CollapsingHeader(selector_name.c_str()))
 	{
 		DrawSelectedDemo();
-
-		ImGui::Separator();
-		if (ImGui::Button(("Open Demo Panel##" + selector_name).c_str()))
-			popout_open = true;
+		if (has_popout)
+		{
+			ImGui::Separator();
+			if (ImGui::Button(("Open Demo Panel##" + selector_name).c_str()))
+				popout_open = true;
+		}
 	}
+	OnPostSelectable();
 }
 
 inline void DemoModule::DrawPopoutPanel()

@@ -35,8 +35,23 @@ void ProgressBarDemo::DrawSelectedDemo()
 	if (stop_selection_progress) {
 		ImGui::SliderFloat(("Progress ##" + selector_name).c_str(), &selection_progress_value, 0.0f, 1.0f, "%.3f");
 	}
-	else
-		selection_progress_value = fmodf(t * 0.1f, 1.1f);
+    else
+    {
+        const float ramp_dur = 5.0f; 
+        const float hold_dur = 0.2f; 
+        const float period = ramp_dur + hold_dur * 2;
+        float phase = fmodf(t, period);
+
+        if (phase < ramp_dur) {
+            selection_progress_value = phase / ramp_dur;
+        }
+        else if (phase < ramp_dur + hold_dur) {
+            selection_progress_value = 1.0f;
+        }
+        else {
+            selection_progress_value = 0.0f;
+        }
+    }
 }
 
 void ProgressBarDemo::OnPrePanel()
