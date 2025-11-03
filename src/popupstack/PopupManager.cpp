@@ -2,6 +2,12 @@
 #include <algorithm>
 #include "tween/imguiTween.h"
 
+// helper functions for flag manipulation
+static bool HasFlag(int mode, int flag) noexcept { return (mode & flag) != 0; }
+static void SetFlag(int& mode, int flag) noexcept { mode |= flag; }
+static void ClearFlag(int& mode, int flag) noexcept { mode &= ~flag; }
+static int ToggleFlag(int mode, int flag) noexcept { return mode ^ flag; }
+
 static void CleanPopupAnimState(const PopupManager::PopupAnimState& st)
 {
     if (st.pushed_modal_bg) ImGui::PopStyleColor();
@@ -100,7 +106,7 @@ void PopupManager::AddToDrawStack(PopupHandle h, bool float_up, bool reusable)
     a.reusable = reusable;
     a.opened_once = false;      // must call ImGui::OpenPopup once
     a.close_requested = false;
-    a.animating = (m_popupDefs[h].cfg.anim_cfg.mode != PopupAnimMode::NONE);
+    a.animating = (m_popupDefs[h].cfg.anim_cfg.mode != PopupAnimMode_None);
     a.anim_t = 0.0f;
     m_drawStack.push_back(a);
 }
@@ -116,10 +122,10 @@ void PopupManager::Close(PopupHandle h)
             return; // avoid changes states during anim
         a.close_requested = true;
         const auto* def = GetDef(a.handle);
-        if (def && def->cfg.anim_cfg.mode != PopupAnimMode::NONE)
+        if (def && def->cfg.anim_cfg.mode != PopupAnimMode_None)
         {
             a.animating = true;
-            a.anim_t = 1.0f;    
+            a.anim_t = 1.0f;
         }
         return;
     }
@@ -131,7 +137,7 @@ void PopupManager::Close(PopupHandle h)
                 return; // avoid changes states during anim
             a.close_requested = true;
             const auto* def = GetDef(h);
-            if (def && def->cfg.anim_cfg.mode != PopupAnimMode::NONE)
+            if (def && def->cfg.anim_cfg.mode != PopupAnimMode_None)
             {
                 a.animating = true;
                 a.anim_t = 1.0f;
@@ -317,7 +323,7 @@ void PopupManager::DrawAll()
             ActiveItem& ai = m_drawStack[i];
             if (ai.close_requested && !item.animating)
             {
-                if (d.cfg.anim_cfg.mode != PopupAnimMode::NONE)
+                if (d.cfg.anim_cfg.mode != PopupAnimMode_None)
                 {
                     item.animating = true;
                     item.anim_t = 1.0f;
@@ -402,7 +408,7 @@ PopupManager::PopupAnimState PopupManager::updateAnim(ActiveItem& a, const Popup
 {
     PopupAnimState st;
     const PopupAnimConfig& acfg = d.cfg.anim_cfg;
-    if (acfg.duration <= 0.0f)
+    if (acfg.mode == PopupAnimMode_None || acfg.duration <= 0.0f)
     {
         a.anim_t = a.close_requested ? 0.0f : 1.0f;
         return st;
@@ -414,9 +420,8 @@ PopupManager::PopupAnimState PopupManager::updateAnim(ActiveItem& a, const Popup
     ImVec4 popupBg = ImGui::GetStyleColorVec4(ImGuiCol_PopupBg);
     ImVec4 modalBg = ImGui::GetStyleColorVec4(ImGuiCol_ModalWindowDimBg);
 
-    switch (acfg.mode)
+    if (HasFlag(acfg.mode, PopupAnimMode_Fade))
     {
-    case PopupAnimMode::FADE:
         // 1) overall alpha
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, a.anim_t);
         st.pushed_alpha = true;
@@ -430,7 +435,49 @@ PopupManager::PopupAnimState PopupManager::updateAnim(ActiveItem& a, const Popup
         modalBg.w *= a.anim_t;
         ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, modalBg);
         st.pushed_modal_bg = true;
-        break;
+    }
+
+    if (d.cfg.size_mode == PopupSizeMode::AUTO)
+        return st; // cannot scale auto-size popups
+
+    if (HasFlag(acfg.mode, PopupAnimMode_Scale))
+    {
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImVec2 vp_size = vp->Size;
+        ImVec2 target_size = d.cfg.size;
+        if (d.cfg.size_mode == PopupSizeMode::PERCENT)
+        {
+            target_size.x = (d.cfg.size.x > 0.f) ? vp_size.x * d.cfg.size.x : 0.f;
+            target_size.y = (d.cfg.size.y > 0.f) ? vp_size.y * d.cfg.size.y : 0.f;
+        }
+        ImVec2 scaled_size = ImVec2(target_size.x * a.anim_t, target_size.y * a.anim_t);
+        ImGui::SetNextWindowSize(scaled_size, ImGuiCond_Always);
+
+        ImVec2 pos = vp->GetCenter();
+        ImVec2 pivot = ImVec2(0.5f, 0.5f);
+        switch (d.cfg.position)
+        {
+        case PopupPosition::TOP_LEFT:
+            pos = ImVec2(vp->Pos.x + d.cfg.padding, vp->Pos.y + d.cfg.padding);
+            pivot = ImVec2(0.f, 0.f);
+            break;
+        case PopupPosition::TOP_RIGHT:
+            pos = ImVec2(vp->Pos.x + vp->Size.x - d.cfg.padding, vp->Pos.y + d.cfg.padding);
+            pivot = ImVec2(1.f, 0.f);
+            break;
+        case PopupPosition::BOTTOM_LEFT:
+            pos = ImVec2(vp->Pos.x + d.cfg.padding, vp->Pos.y + vp->Size.y - d.cfg.padding);
+            pivot = ImVec2(0.f, 1.f);
+            break;
+        case PopupPosition::BOTTOM_RIGHT:
+            pos = ImVec2(vp->Pos.x + vp->Size.x - d.cfg.padding, vp->Pos.y + vp->Size.y - d.cfg.padding);
+            pivot = ImVec2(1.f, 1.f);
+            break;
+        case PopupPosition::CENTERED: default:
+            // already set to center
+            break;
+        }
+        ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
     }
 
     return st;

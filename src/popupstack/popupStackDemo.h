@@ -25,7 +25,7 @@ inline void PopupStackDemo::DrawSelectedDemo()
 {
 	if (ImGui::Button("Open Demo Popup"))
 	{
-		genericPopup = m_popupManager.Open("Demo Popup", PopupPreset::AUTO_CENTER, [&]() {
+		genericPopup = m_popupManager.Open("Demo Popup", PopupPreset::MEDIUM_CENTER, [&]() {
 			ImGui::Text("Hello from the demo popup!");
 			if (ImGui::Button("Close"))
 			{
