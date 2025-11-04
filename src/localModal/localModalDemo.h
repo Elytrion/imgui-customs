@@ -14,8 +14,15 @@ protected:
 
 inline void LocalModalDemo::DrawSelectedDemo()
 {
+    ImGui::Spacing();
+    ImGui::TextWrapped("This is a demo of a local popup modal. "
+        "A local popup modal blocks interaction with the window it is opened on, but leaves other windows fully interactive. "
+        "Use the button below to open one on the current window!");
+
     ImGui::NewLine();
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+
+    ImGui::Spacing();
     if (ImGui::Button("Open Local Popup"))
     {
         ImGui::OpenLocalPopupModal("Main Local Panel Popup");
