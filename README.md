@@ -11,4 +11,4 @@ On first configure, CMake auto-fetches:
 - [GLFW](https://github.com/glfw/glfw)
 - [GLM](https://github.com/g-truc/glm)
 - [Dear ImGui](https://github.com/ocornut/imgui)
-`GLAD` is vendored in `external/glad` and requires no extra setup.
+- `GLAD` is vendored in `external/glad` and requires no extra setup.
