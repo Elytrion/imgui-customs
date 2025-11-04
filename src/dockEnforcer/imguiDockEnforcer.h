@@ -102,7 +102,9 @@ inline void DockEnforcer::DockEnforcerBeginLock(const char* windowName, const ch
     auto& mem = m_mems[windowName];
 
     if (targetRootWindowName && *targetRootWindowName)
+    {
         mem.target_root = ResolveRootDockNodeID(targetRootWindowName);
+    }
 
     if (IsWindowBeingDragged(windowName))
     {

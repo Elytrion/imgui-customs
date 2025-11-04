@@ -58,7 +58,7 @@ inline void DockEnforcerDemo::DrawDemoPanel()
 		std::vector<const char*> names;
 		names.reserve(dock_windows.size());
 		for (auto& w : dock_windows)
-			if (w->panel_name != panel_name)  // don't include ourself
+			if (w->panel_name != panel_name && w->popout_open)  // don't include ourself
 				names.push_back(w->panel_name.c_str());
 
 		if (names.empty())
@@ -71,11 +71,10 @@ inline void DockEnforcerDemo::DrawDemoPanel()
 			if (current_dock_window >= (int)names.size())
 				current_dock_window = 0;
 
-			if (ImGui::Combo("Target Dock Window", &current_dock_window,
-				names.data(), (int)names.size()))
-			{
-				target_dock_window = names[current_dock_window];
-			}
+			ImGui::Combo("Target Dock Window", &current_dock_window,
+				names.data(), (int)names.size());
+			
+			target_dock_window = names[current_dock_window];
 		}
 	}
 	else if (target_dock_window != "")
