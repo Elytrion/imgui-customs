@@ -3,10 +3,10 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-namespace Noise
+namespace AnimHelpers
 {
     // 1D value noise: random samples per "tick", smooth-interpolated in between.
-// speed = "hops per second". roughness in [0..1]: 0 = linear, 1 = smoothstep. (>1 makes it even smoother)
+    // speed = "hops per second". roughness in [0..1]: 0 = linear, 1 = smoothstep. (>1 makes it even smoother)
     static inline float ValueNoise1D(uint32_t seed, float t, float speed, float roughness = 1.0f) {
         // Tiny stable hash -> [0,1)
         auto Hash01 = [&](uint32_t x) {
@@ -26,6 +26,53 @@ namespace Noise
         return a + (b - a) * w; // 0..1
     }
 
+    // --- helpers ---
+    static inline ImU32 LerpRGBA(ImU32 a, ImU32 b, float t)
+    {
+        ImVec4 ca = ImGui::ColorConvertU32ToFloat4(a);
+        ImVec4 cb = ImGui::ColorConvertU32ToFloat4(b);
+        ImVec4 cc = ImLerp(ca, cb, ImClamp(t, 0.0f, 1.0f));
+        return ImGui::ColorConvertFloat4ToU32(cc);
+    }
+
+    static inline ImU32 LerpHSV(ImU32 a, ImU32 b, float t)
+    {
+        auto u32_to_hsva = [](ImU32 c, float& h, float& s, float& v, float& a_out) {
+            ImVec4 cf = ImGui::ColorConvertU32ToFloat4(c);
+            ImGui::ColorConvertRGBtoHSV(cf.x, cf.y, cf.z, h, s, v);
+            a_out = cf.w;
+            };
+        float h1, s1, v1, a1, h2, s2, v2, a2;
+        u32_to_hsva(a, h1, s1, v1, a1);
+        u32_to_hsva(b, h2, s2, v2, a2);
+        // Shortest hue interpolation
+        float dh = h2 - h1;
+        if (dh > 0.5f)  dh -= 1.0f;
+        if (dh < -0.5f) dh += 1.0f;
+        float h = h1 + dh * t;
+        if (h < 0.0f) h += 1.0f;
+        if (h > 1.0f) h -= 1.0f;
+        float s = ImLerp(s1, s2, t);
+        float v = ImLerp(v1, v2, t);
+        float alpha = ImLerp(a1, a2, t);
+        ImVec4 rgb; ImGui::ColorConvertHSVtoRGB(h, s, v, rgb.x, rgb.y, rgb.z); rgb.w = alpha;
+        return ImGui::ColorConvertFloat4ToU32(rgb);
+    }
+
+    static inline ImU32 SampleStops(const ImU32* stops, int count, float u, bool use_hsv)
+    {
+        if (count <= 0) return IM_COL32_WHITE;
+        if (count == 1) return stops[0];
+
+        // u in [0,1] across the gradient; supports repeating if caller wraps it.
+        u = ImClamp(u, 0.0f, 1.0f);
+        float x = u * (count - 1);
+        int i = (int)floorf(x);
+        if (i >= count - 1) return stops[count - 1];
+        float t = x - i;
+        return use_hsv ? LerpHSV(stops[i], stops[i + 1], t)
+            : LerpRGBA(stops[i], stops[i + 1], t);
+    }
 }
 
 // ImGui namespace access for convenience
@@ -112,8 +159,8 @@ namespace ImGui
             sy += (uint32_t)(chaos * 1511.0f);
 
             // Value noise in [-1,1], scaled by spread
-            float jx = (Noise::ValueNoise1D(sx, t, speed, roughness) * 2.0f - 1.0f) * spread_x;
-            float jy = (Noise::ValueNoise1D(sy, t, speed * 1.13f, roughness) * 2.0f - 1.0f) * spread_y;
+            float jx = (AnimHelpers::ValueNoise1D(sx, t, speed, roughness) * 2.0f - 1.0f) * spread_x;
+            float jy = (AnimHelpers::ValueNoise1D(sy, t, speed * 1.13f, roughness) * 2.0f - 1.0f) * spread_y;
 
             // Draw this character only
             dl->AddText(font, size, ImVec2(pen.x + jx, pen.y + jy), col, p0, p);
@@ -126,4 +173,85 @@ namespace ImGui
         }
     }
 
+
+    void TextGradientEx(const char* text,
+        const ImU32* stops, int stop_count,
+		int mode = 0, // 0 == none, 1 == repeat, 2 == pingpong
+        float phase_speed = 0.5f,   // “widths per second”
+        float phase_offset = 0.0f,  // start phase [0..1)
+        bool use_hsv = false,       // interpolate in HSV?
+        bool smooth_pingpong_peaks = true)
+    {
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImVec2 size = ImGui::CalcTextSize(text);
+
+        // Layout like normal text
+        ImGui::Dummy(size);
+
+        const int v0 = dl->VtxBuffer.Size;
+        dl->AddText(pos, IM_COL32_WHITE, text); // color gets overridden
+
+        // Find horizontal span of just emitted vertices
+        float minx = FLT_MAX, maxx = -FLT_MAX;
+        for (int i = v0; i < dl->VtxBuffer.Size; ++i) {
+            float x = dl->VtxBuffer[i].pos.x;
+            if (x < minx) minx = x;
+            if (x > maxx) maxx = x;
+        }
+        float span = ImMax(1.0f, maxx - minx);
+
+        // Phase (animation)
+        float phase = phase_offset;
+        if (mode != 0 && phase_speed != 0.0f) {
+            float t = (float)ImGui::GetTime();
+            phase += t * phase_speed;  // measured in “widths”
+        }
+
+        auto wrap_repeat = [](float x) { x -= floorf(x); return x; }; // [0,1)
+        auto wrap_pingpong = [smooth_pingpong_peaks](float x) {
+            float s = x - floorf(x);              // saw in [0,1)
+            float tri = 1.0f - fabsf(2.0f * s - 1); // 0->1->0
+            if (smooth_pingpong_peaks)            // soften corners
+                tri = tri * tri * (3.0f - 2.0f * tri);
+            return tri;                           // still [0,1]
+            };
+
+        // Recolor
+        for (int i = v0; i < dl->VtxBuffer.Size; ++i) {
+            float u = (dl->VtxBuffer[i].pos.x - minx) / span; // 0..1 across text
+            float s = u + phase;
+
+            float tval;
+            if (mode == 0) {
+                tval = ImClamp(u, 0.0f, 1.0f);
+            }
+            else if (mode == 1) {
+                tval = wrap_repeat(s);
+            }
+            else { // PingPong
+                tval = wrap_pingpong(s);
+            }
+
+            // Preserve original alpha of the vertex (multiply final alpha by it)
+            ImU32 c = AnimHelpers::SampleStops(stops, stop_count, tval, use_hsv);
+            ImU32 vcol = dl->VtxBuffer[i].col;
+            float a_vtx = ((vcol >> 24) & 0xFF) / 255.0f;
+            ImVec4 cf = ImGui::ColorConvertU32ToFloat4(c);
+            cf.w *= a_vtx;
+            dl->VtxBuffer[i].col = ImGui::ColorConvertFloat4ToU32(cf);
+        }
+    }
+
+	// Displays text with a color gradient applied.
+    void TextGradient(const char* text, const ImU32* stops, int stop_count)
+    {
+        TextGradientEx(text, stops, stop_count, 0, 0, 0);
+	}
+
+    void TextGradientAnimated(const char* text, const ImU32* stops, int stop_count,
+        bool pingpong = true, float phase_speed = 1.0f, float phase_offset = 0.0f)
+    {
+        TextGradientEx(text, stops, stop_count, (pingpong ? 2 : 1), phase_speed, phase_offset);
+	}
 }
