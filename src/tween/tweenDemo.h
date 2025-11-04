@@ -96,8 +96,7 @@ void TweenDemo::DrawSelectedDemo()
     //
     // Everything is driven by the same `inside` (hover) boolean but uses
     // independent IDs so tweens can run concurrently
-    ImGui::TextUnformatted("Tween Showcase");
-    ImGui::Separator();
+    ImGui::SeparatorText("Tween Card Demo");
 
     // Interaction surface
     const char* card_id = "##tween_card_demo";
@@ -156,9 +155,53 @@ void TweenDemo::DrawSelectedDemo()
     ImGui::TextWrapped("This demo shows a simple interactive card that tweens multiple properties on hover. "
         "The tweens are all independent but share the same hover state. "
 		"The code is in the TweenDemo::DrawSelectedDemo() function.");
+   
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::SeparatorText("Tween Reset Demo");
 
+    static bool  prog_inside = false;      // false -> 0.0, true -> 1.0
+    static float prog_up = 2.0f;      // seconds to go 0 -> 1
+    static float prog_down = 1.0f;      // seconds to go 1 -> 0
+
+    // Tween a normalized value [0..1]
+    float prog = ImGui::Tween<float>(
+        "demo.progress",           // unique tween id
+        prog_inside,               // direction (min->max when true)
+        prog_up, prog_down,
+        0.0f, 1.0f,
+        ImGuiTweenFlags_StartMin,  // start at 0 when first shown
+        Easing::easeOutQuint
+    );
+
+    // Progress bar
+    ImGui::ProgressBar(prog, ImVec2(-FLT_MIN, 0.0f)); // full width
+
+    // Controls
+    if (ImGui::Button(prog_inside ? "Reverse" : "Play"))
+        prog_inside = !prog_inside;
+
+    ImGui::SameLine();
+    if (ImGui::Button("Reset"))
+        ImGui::ResetTween("demo.progress");  // snaps back to the captured initial state
+
+    // (Optional) quick knobs to play with feel
+    ImGui::SameLine();
+    ImGui::TextDisabled("  value=%.2f", prog);
+
+    ImGui::Separator();
+    ImGui::TextWrapped("This demo shows a simple progress bar whose value is being tweened. "
+        "Use the reset button to reset the tween to its initial state. "
+        "When the tween's [inside] state changes, its initial state is updated to match the new starting value. "
+        "Resetting the tween will then return it to that new starting point rather than the original one. "
+    );
+
+    ImGui::Spacing();
+    ImGui::Spacing();
     ImGui::SeparatorText("Addition Tween Demos");
     AnimatedWindowDemo();
+    ImGui::Spacing();
+    ImGui::Spacing();
 }
 
 void TweenDemo::OnPrePanel()
