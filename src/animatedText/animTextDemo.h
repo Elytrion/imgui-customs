@@ -24,6 +24,7 @@ inline void AnimatedTextDemo::DrawSelectedDemo()
 
 	ImGui::TextWobble("This is an example of animated wobbling text!");
 
+	ImGui::TextShaky("This is an example of animated shaky text!");
 }
 
 inline void AnimatedTextDemo::OnPrePanel()
