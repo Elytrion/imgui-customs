@@ -209,7 +209,7 @@ void ToggleDemo::DrawDemoPanel()
     // Preview (bordered child)
     // =========================
     ImGui::BeginChild("toggle_preview_child", ImVec2(0, 0),
-        ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
+        ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
     {
         ImGui::Text("demo_toggle");
         ImGui::SameLine(180.0f);

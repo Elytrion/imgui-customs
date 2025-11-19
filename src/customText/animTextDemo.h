@@ -1,25 +1,26 @@
 #pragma once
 #include "imguiAnimText.h"
+#include "imguiTextFormats.h"
 #include "demo_module.h"
 
-class AnimatedTextDemo : public DemoModule
+class CustomTextDemo : public DemoModule
 {
 public:
-	AnimatedTextDemo() : DemoModule("Animated Text", "Animated Text Demo Panel") {}
+	CustomTextDemo() : DemoModule("Custom Text", "Custom Text Demo Panel") {}
 protected:
 	void DrawSelectedDemo();
 	void OnPrePanel() override;
 	void DrawDemoPanel() override;
 };
 
-inline void AnimatedTextDemo::DrawSelectedDemo()
+inline void CustomTextDemo::DrawSelectedDemo()
 {
-	ImGui::SeparatorText("Animated Text Demo");
-	ImGui::TextWrapped("This demo showcases a few examples of animated text effects."
+	ImGui::SeparatorText("Custom Text Demo");
+	ImGui::TextWrapped("This demo showcases a few examples of custom text effects not available by default in ImGUI."
 	"Inspired by:");
 	ImGui::TextLink("https://github.com/ocornut/imgui/issues/1286");
 	ImGui::Spacing();
-	ImGui::Separator();
+	ImGui::SeparatorText("Animated Text Effects");
 	ImGui::Spacing();
 
 	ImGui::TextWobble("This is an example of animated wobbling text!");
@@ -35,14 +36,25 @@ inline void AnimatedTextDemo::DrawSelectedDemo()
 	const ImU32 col_yellow = IM_COL32(255, 255, 0, 255);
 	ImU32 colours2[] = { col_red , col_green, col_blue, col_yellow };
 	ImGui::TextGradientAnimated("This is an example of animated gradient colored text with multiple stops!", colours2, 4, true, 0.2f, 0.5f);
+
+	ImGui::Spacing();
+	ImGui::SeparatorText("Custom Text Formats");
+	ImGui::Spacing();
+
+	ImGui::TextLimitedF("This is some formatted text that is limited by the window space. "
+		"Text that exceeds the limit is cut off and replaced with an ellipsis (...). "
+		"The entire text will be shown in a tooltip when you hover over the text (toggleable). "
+		"The tooltip should wrap around for you to see the entire text, with it's maximum width limited to the window width as well."
+		"To prove formatting works, here is the display of current FPS: %.2f",
+		ImGui::GetIO().Framerate);
 }
 
-inline void AnimatedTextDemo::OnPrePanel()
+inline void CustomTextDemo::OnPrePanel()
 {
 	
 }
 
-inline void AnimatedTextDemo::DrawDemoPanel()
+inline void CustomTextDemo::DrawDemoPanel()
 {
 	DrawPlaceholderText();
 }

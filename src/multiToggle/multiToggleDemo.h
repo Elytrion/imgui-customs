@@ -44,7 +44,7 @@ void MultiToggleDemo::DrawDemoPanel()
     ImGui::TextUnformatted("Multi-Toggle Playground");
     ImGui::Separator();
 
-    ImGui::BeginChild("multi_preview_child", ImVec2(0, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
+    ImGui::BeginChild("multi_preview_child", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
     {
         std::vector<const char*> cstr;
         cstr.reserve(labels.size());

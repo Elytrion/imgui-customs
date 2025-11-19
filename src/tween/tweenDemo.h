@@ -215,7 +215,7 @@ void TweenDemo::DrawDemoPanel()
     ImGui::Separator();
 
     // ------------------------ PREVIEW TILE ------------------------
-    ImGui::BeginChild("tween_preview", ImVec2(0, 170), ImGuiChildFlags_Border);
+    ImGui::BeginChild("tween_preview", ImVec2(0, 170), ImGuiChildFlags_Borders);
     {
         // Interaction surface
         const char* tile_id = "##tween_tile";

@@ -92,7 +92,7 @@ void ProgressBarDemo::DrawDemoPanel()
     // Preview (bordered area)
     // =========================
     ImGui::BeginChild("progress_preview_child", ImVec2(0, 0),
-        ImGuiChildFlags_Border | ImGuiChildFlags_AutoResizeY);
+        ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
     {
         // Drive target progress
         if (!manual)
