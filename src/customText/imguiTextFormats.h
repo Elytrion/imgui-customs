@@ -11,6 +11,7 @@
 // ImGui namespace access for convenience
 namespace ImGui
 {
+	static float MINIMUM_TOOLTIP_WIDTH_MULTIPLIER = 20.0f; // modify this to change the minimum width of the tooltip in terms of characters
 	static std::string EllipsizeRightFit(const char* text, float max_width)
 	{
 		if (!text) return {};
@@ -81,7 +82,8 @@ namespace ImGui
 		if (show_tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 		{
 			ImGui::BeginTooltip();
-			float tooltipWrapWidth = (avail > 0.0f) ? avail : ImGui::GetFontSize() * 50.0f;
+			const float minWidth = ImGui::GetFontSize() * MINIMUM_TOOLTIP_WIDTH_MULTIPLIER;
+			float tooltipWrapWidth = (avail > minWidth) ? avail : minWidth;
 			ImGui::PushTextWrapPos(tooltipWrapWidth);
 			ImGui::TextUnformatted(text);
 			ImGui::PopTextWrapPos();
