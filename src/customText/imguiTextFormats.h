@@ -15,19 +15,29 @@ struct TextWrappedLimitedCacheEntry
 };
 }
 
+typedef int TextLimitedFlags;
+enum TextLimitedFlags_
+{
+	TextLimitedFlags_None = 0,					 // dont show tooltip
+	TextLimitedFlags_TooltipShowAll = 1 << 0,	 // tooltip shows full text (default)
+	TextLimitedFlags_TooltipShowCutoff = 1 << 1, // tooltip shows only truncated text
+};
+
 // ImGui namespace access for convenience
 namespace ImGui
 {
 	static float MINIMUM_TOOLTIP_WIDTH_MULTIPLIER = 20.0f; // modify this to change the minimum width of the tooltip in terms of characters
-	static std::string EllipsizeRightFit(const char* text, float max_width)
+	static std::string EllipsizeRightFit(const char* text, float max_width, std::string* out_cutoff = nullptr)
 	{
+		if (out_cutoff) out_cutoff->clear();
+		const char* dots = "...";
+
 		if (!text) return {};
-		if (max_width <= 0.0f) return "...";
+		if (max_width <= 0.0f) return dots;
 
 		ImVec2 full = ImGui::CalcTextSize(text);
 		if (full.x <= max_width) return text;
 
-		const char* dots = "...";
 		float dots_w = ImGui::CalcTextSize(dots).x;
 		float target_w = max_width - dots_w;
 		if (target_w <= 0.0f) return std::string(dots);
@@ -45,19 +55,27 @@ namespace ImGui
 			if (w > target_w) break;
 			last_good = p;
 		}
+
+		const char* text_end = text + strlen(text);
+
+		if (out_cutoff && last_good < text_end)
+			*out_cutoff = std::string(last_good, text_end); // hidden suffix
+
 		std::string out(text, last_good);
 		out += dots;
 		return out;
 	}
-	static std::string EllipsizeLeftFit(const char* text, float max_width)
+	static std::string EllipsizeLeftFit(const char* text, float max_width, std::string* out_cutoff = nullptr)
 	{
+		if (out_cutoff) out_cutoff->clear();
+		const char* dots = "...";
+
 		if (!text) return {};
-		if (max_width <= 0.0f) return "...";
+		if (max_width <= 0.0f) return dots;
 
 		ImVec2 full = ImGui::CalcTextSize(text);
 		if (full.x <= max_width) return text;
 
-		const char* dots = "...";
 		float dots_w = ImGui::CalcTextSize(dots).x;
 		float target_w = max_width - dots_w;
 		if (target_w <= 0.0f) return std::string(dots);
@@ -77,16 +95,35 @@ namespace ImGui
 			if (w > target_w) break;
 			first_to_keep = p;
 		}
+
+		if (out_cutoff && first_to_keep > begin)
+			*out_cutoff = std::string(begin, first_to_keep); // hidden prefix
+
 		return std::string("...") + std::string(first_to_keep, end);
 	}
-	void TextLimited(const char* text, bool cut_left = false, float max_width = -1.0f, float padding_px = 0.0f, bool show_tooltip = true)
+
+	void TextLimited(
+		const char* text,
+		bool cut_left = false,
+		float max_width = -1.0f,
+		float padding_px = 0.0f,
+		bool show_tooltip = true,
+		TextLimitedFlags flags = TextLimitedFlags_TooltipShowAll)
 	{
 		float avail = (max_width >= 0.0f ? max_width : ImGui::GetContentRegionAvail().x) - padding_px;
+		std::string coff;
 		if (avail < 0.0f) avail = 0.0f;
-		std::string s = cut_left ? EllipsizeLeftFit(text, avail) : EllipsizeRightFit(text, avail);
+		std::string s = cut_left ? EllipsizeLeftFit(text, avail, &coff) : EllipsizeRightFit(text, avail, &coff);
 
 		ImGui::TextUnformatted(s.c_str());
-		if (show_tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+
+		if (!show_tooltip)
+			return;
+
+		if ((flags & (TextLimitedFlags_TooltipShowAll | TextLimitedFlags_TooltipShowCutoff)) == 0)
+			return;
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 		{
 			ImGui::BeginTooltip();
 			const float minWidth = ImGui::GetFontSize() * MINIMUM_TOOLTIP_WIDTH_MULTIPLIER;
