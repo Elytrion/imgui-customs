@@ -18,7 +18,7 @@ struct TextWrappedLimitedCacheEntry
 typedef int TextLimitedFlags;
 enum TextLimitedFlags_
 {
-	TextLimitedFlags_None = 0,					 // dont show tooltip
+	TextLimitedFlags_NoTooltip = 0,				 // dont show tooltip
 	TextLimitedFlags_TooltipShowAll = 1 << 0,	 // tooltip shows full text (default)
 	TextLimitedFlags_TooltipShowCutoff = 1 << 1, // tooltip shows only truncated text
 };
@@ -107,7 +107,6 @@ namespace ImGui
 		bool cut_left = false,
 		float max_width = -1.0f,
 		float padding_px = 0.0f,
-		bool show_tooltip = true,
 		TextLimitedFlags flags = TextLimitedFlags_TooltipShowAll)
 	{
 		float avail = (max_width >= 0.0f ? max_width : ImGui::GetContentRegionAvail().x) - padding_px;
@@ -115,26 +114,33 @@ namespace ImGui
 		if (avail < 0.0f) avail = 0.0f;
 		std::string s = cut_left ? EllipsizeLeftFit(text, avail, &coff) : EllipsizeRightFit(text, avail, &coff);
 
+		const bool truncated = !coff.empty();
 		ImGui::TextUnformatted(s.c_str());
 
-		if (!show_tooltip)
-			return;
+		bool want_tooltip = (flags & (TextLimitedFlags_TooltipShowAll | TextLimitedFlags_TooltipShowCutoff)) != 0;
 
-		if ((flags & (TextLimitedFlags_TooltipShowAll | TextLimitedFlags_TooltipShowCutoff)) == 0)
-			return;
-
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+		if (want_tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 		{
+			std::string tooltip_text;
+			if (truncated && (flags & TextLimitedFlags_TooltipShowCutoff))
+			{
+				tooltip_text = (cut_left) ? coff + "..." : "..." + coff;
+			}
+			else if (flags & TextLimitedFlags_TooltipShowAll)
+			{
+				tooltip_text = text;
+			}
+
 			ImGui::BeginTooltip();
 			const float minWidth = ImGui::GetFontSize() * MINIMUM_TOOLTIP_WIDTH_MULTIPLIER;
 			float tooltipWrapWidth = (avail > minWidth) ? avail : minWidth;
 			ImGui::PushTextWrapPos(tooltipWrapWidth);
-			ImGui::TextUnformatted(text);
+			ImGui::TextUnformatted(tooltip_text.c_str());
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
 	}
-	void TextLimitedV(bool cut_left, float max_width, float padding_px, bool show_tooltip, const char* fmt, va_list args)
+	void TextLimitedV(bool cut_left, float max_width, float padding_px, TextLimitedFlags flags, const char* fmt, va_list args)
 	{
 		ImGuiWindow* window = GetCurrentWindow();
 		if (window->SkipItems)
@@ -142,20 +148,20 @@ namespace ImGui
 
 		const char* text, * text_end;
 		ImFormatStringToTempBufferV(&text, &text_end, fmt, args);
-		TextLimited(text, cut_left, max_width, padding_px, show_tooltip);
+		TextLimited(text, cut_left, max_width, padding_px, flags);
 	}
-	void TextLimitedF(bool cut_left, float max_width, float padding_px, bool show_tooltip, const char* fmt, ...)
+	void TextLimitedF(bool cut_left, float max_width, float padding_px, TextLimitedFlags flags, const char* fmt, ...)
 	{
 		va_list args;
 		va_start(args, fmt);
-		TextLimitedV(cut_left, max_width, padding_px, show_tooltip, fmt, args);
+		TextLimitedV(cut_left, max_width, padding_px, flags, fmt, args);
 		va_end(args);
 	}
 	void TextLimitedF(const char* fmt, ...) // default to right cut, full width, no padding, with tooltip
 	{
 		va_list args;
 		va_start(args, fmt);
-		TextLimitedV(false, -1.0f, 0.0f, true, fmt, args);
+		TextLimitedV(false, -1.0f, 0.0f, TextLimitedFlags_TooltipShowAll, fmt, args);
 		va_end(args);
 	}
 
