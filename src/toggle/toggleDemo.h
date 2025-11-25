@@ -30,7 +30,7 @@ void ToggleDemo::DrawSelectedDemo()
     const float line_width = 220.0f;
 
     // ------------------------------------------------------------
-    // 1) Default (your stock toggle with default config)
+    // 1) Default (stock toggle with default config)
     // ------------------------------------------------------------
     ImGui::Text("Default");
     ImGui::SameLine(line_width);

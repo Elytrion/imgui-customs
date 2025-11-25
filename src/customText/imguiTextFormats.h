@@ -103,6 +103,7 @@ namespace ImGui
 		return std::string("...") + std::string(first_to_keep, end);
 	}
 
+	// Draw text that is limited to a maximum width, adding "..." as needed.
 	void TextLimited(
 		const char* text,
 		bool cut_left = false,
@@ -158,6 +159,7 @@ namespace ImGui
 		TextLimitedV(cut_left, max_width, padding_px, flags, fmt, args);
 		va_end(args);
 	}
+	// Draw formatted text that is limited to a maximum width, adding "..." as needed. Defaults to right cut, full width, no padding, with tooltip.
 	void TextLimitedF(const char* fmt, ...) // default to right cut, full width, no padding, with tooltip
 	{
 		va_list args;
@@ -228,12 +230,13 @@ namespace ImGui
 		out += dots;
 		return out;
 	}
-	// max_height_px <= 0 -> use max_lines * line_height
+	
+	// Draw wrapped text that is limited to a maximum height, adding "..." as needed.
 	inline void TextWrappedLimited(
 		const char* itemID, // must be provided to have unique cache entries for different text instances, since text may change
 		const char* text,
 		float max_width = -1.0f,
-		float max_height_px = -1.0f,
+		float max_height_px = -1.0f, // max_height_px <= 0 -> use max_lines * line_height
 		int   max_lines = 5,
 		float padding_px = 0.0f,
 		TextLimitedFlags flags = TextLimitedFlags_TooltipShowAll)

@@ -78,6 +78,7 @@ namespace AnimHelpers
 // ImGui namespace access for convenience
 namespace ImGui
 {
+	// Wobbling text effect using sine waves.
     // amp: vertical wobble in pixels (also used as vertical padding)
     // freq: waves across the whole string
     // speed: cycles per second
@@ -248,7 +249,7 @@ namespace ImGui
     {
         TextGradientEx(text, stops, stop_count, 0, 0, 0);
 	}
-
+	// Displays text with an animated color gradient applied.
     void TextGradientAnimated(const char* text, const ImU32* stops, int stop_count,
         bool pingpong = true, float phase_speed = 1.0f, float phase_offset = 0.0f)
     {
