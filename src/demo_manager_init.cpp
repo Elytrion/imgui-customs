@@ -8,7 +8,7 @@
 #include "multiToggle/multiToggleDemo.h"
 #include "tween/tweenDemo.h"
 #include "progressBar/progressBarDemo.h"
-#include "customText/animTextDemo.h"
+#include "customText/customTextDemo.h"
 
 void DemoManager::InitModules()
 {

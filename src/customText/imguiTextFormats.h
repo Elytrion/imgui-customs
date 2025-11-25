@@ -3,11 +3,6 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#ifndef IM_FMTARGS
-#define IM_FMTARGS(FMT) __attribute__((format(printf, FMT, FMT+1)))
-#define IM_FMTLIST(FMT)
-#endif
-
 // ImGui namespace access for convenience
 namespace ImGui
 {
