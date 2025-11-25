@@ -9,6 +9,7 @@
 #include "tween/tweenDemo.h"
 #include "progressBar/progressBarDemo.h"
 #include "customText/customTextDemo.h"
+#include "asciiart/asciiArtDemo.h"
 
 void DemoManager::InitModules()
 {
@@ -22,4 +23,5 @@ void DemoManager::InitModules()
 	RegisterDemoModule(std::make_shared<TweenDemo>());
 	RegisterDemoModule(std::make_shared<ProgressBarDemo>());
 	RegisterDemoModule(std::make_shared<CustomTextDemo>());
+	RegisterDemoModule(std::make_shared<ASCIIArtDemo>());
 }
