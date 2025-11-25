@@ -3,6 +3,18 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+namespace
+{
+struct TextWrappedLimitedCacheEntry
+{
+	float wrap_width = 0.0f;
+	float max_height = 0.0f;
+	std::string input;
+	std::string output;
+	int last_frame_used = 0;
+};
+}
+
 // ImGui namespace access for convenience
 namespace ImGui
 {
@@ -170,7 +182,8 @@ namespace ImGui
 		return out;
 	}
 	// max_height_px <= 0 -> use max_lines * line_height
-	void TextWrappedLimited(
+	inline void TextWrappedLimited(
+		const char* itemID, // must be provided to have unique cache entries for different text instances, since text may change
 		const char* text,
 		float max_width = -1.0f,
 		float max_height_px = -1.0f,
@@ -193,12 +206,44 @@ namespace ImGui
 		// Compute max height in pixels
 		if (max_height_px <= 0.0f)
 		{
-			float line_h = ImGui::GetTextLineHeight(); // no extra item spacing to keep it tighter
+			float line_h = ImGui::GetTextLineHeight();
 			max_height_px = line_h * (float)max_lines;
 		}
 
-		// Build the visible string with multiline ellipsis
-		std::string s = EllipsizeMultilineFit(text, avail_w, max_height_px);
+		// ---------- CACHING LAYER ----------
+		// one cache map per frame
+		static std::unordered_map<ImGuiID, TextWrappedLimitedCacheEntry> s_cache;
+		int frame = ImGui::GetFrameCount();
+		// Use a widget ID as cache key.
+		ImGuiID id = window->GetID(itemID);
+		TextWrappedLimitedCacheEntry& entry = s_cache[id];
+		entry.last_frame_used = frame;
+		bool need_recalc =
+			entry.input != text ||
+			fabsf(entry.wrap_width - avail_w) > 0.5f ||
+			fabsf(entry.max_height - max_height_px) > 0.5f;
+
+		if (need_recalc)
+		{
+			entry.input = text;
+			entry.wrap_width = avail_w;
+			entry.max_height = max_height_px;
+			entry.output = EllipsizeMultilineFit(text, avail_w, max_height_px);
+		}
+
+		if (s_cache.size() > 128) // arbitrary max cache size for cleanup
+		{
+			for (auto it = s_cache.begin(); it != s_cache.end(); )
+			{
+				if (it->second.last_frame_used < frame - 300) // not used for ~300 frames
+					it = s_cache.erase(it);
+				else
+					++it;
+			}
+		}
+
+		const std::string& s = entry.output;
+		// ---------- END CACHING LAYER ----------
 
 		// Render it with wrapping
 		float wrap_pos = ImGui::GetCursorPos().x + avail_w; // window-local
@@ -218,5 +263,4 @@ namespace ImGui
 			ImGui::EndTooltip();
 		}
 	}
-
 }

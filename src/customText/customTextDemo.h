@@ -50,16 +50,19 @@ inline void CustomTextDemo::DrawSelectedDemo()
 
 	ImGui::Spacing();
 
+	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 220, 255, 255)); // added color for visibility
 	ImGui::TextWrappedLimited(
+		"STABLE_TEXT_ID_HERE", // must be provided for internal caching to work properly and must be stable and unique per text instance
 		"This is an example of wrapped text that is also limited in height. "
 		"Text will first wrap, but if it will exceed a given height limit it will be cut off and replaced with an ellipsis (...). "
 		"The entire text will be shown in a tooltip when you hover over the text (toggleable). "
 		"This is useful for displaying potentially long paragraphs of text that does not consume too much UI space if the window size is changed."
-		"Formatting is currently not available for this text type, and it may incur some slight performance penalties due to binary searching through the text provided each frame.",
+		"Formatting is currently not available for this text type, and it may incur some slight performance penalties when recalculating text fitting for long paragraphs (> 300 words)",
 		-1.0f,    // max width (use content region)
 		-1.0f,    // max height in pixels (< 0 -> use max lines)
 		3         // max lines (used if max height not specified)
 	);
+	ImGui::PopStyleColor();
 }
 
 inline void CustomTextDemo::OnPrePanel()
