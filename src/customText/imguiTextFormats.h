@@ -11,6 +11,7 @@ struct TextWrappedLimitedCacheEntry
 	float max_height = 0.0f;
 	std::string input;
 	std::string output;
+	std::string cutoff;
 	int last_frame_used = 0;
 };
 }
@@ -165,10 +166,10 @@ namespace ImGui
 		va_end(args);
 	}
 
-	static std::string EllipsizeMultilineFit(const char* text, float wrap_width, float max_height)
+	static std::string EllipsizeMultilineFit(const char* text, float wrap_width, float max_height, std::string* out_cutoff = nullptr)
 	{
 		const char* dots = "...";
-
+		if (out_cutoff) out_cutoff->clear();
 		if (!text)
 			return {};
 		if (wrap_width <= 0.0f || max_height <= 0.0f)
@@ -220,6 +221,9 @@ namespace ImGui
 		if (lo <= 0)
 			return dots; // not even one codepoint + "..." fits nicely
 
+		if (out_cutoff && cps[lo] < text_end)
+			*out_cutoff = std::string(cps[lo], text_end); // hidden tail
+
 		std::string out(text, cps[lo]);
 		out += dots;
 		return out;
@@ -232,7 +236,7 @@ namespace ImGui
 		float max_height_px = -1.0f,
 		int   max_lines = 5,
 		float padding_px = 0.0f,
-		bool  show_tooltip = true)
+		TextLimitedFlags flags = TextLimitedFlags_TooltipShowAll)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
@@ -265,14 +269,17 @@ namespace ImGui
 			entry.input != text ||
 			fabsf(entry.wrap_width - avail_w) > 0.5f ||
 			fabsf(entry.max_height - max_height_px) > 0.5f;
-
+		std::string coff;
 		if (need_recalc)
 		{
 			entry.input = text;
 			entry.wrap_width = avail_w;
 			entry.max_height = max_height_px;
-			entry.output = EllipsizeMultilineFit(text, avail_w, max_height_px);
+			entry.output = EllipsizeMultilineFit(text, avail_w, max_height_px, &coff);
+			entry.cutoff = coff;
 		}
+		else
+			coff = entry.cutoff;
 
 		if (s_cache.size() > 128) // arbitrary max cache size for cleanup
 		{
@@ -286,6 +293,7 @@ namespace ImGui
 		}
 
 		const std::string& s = entry.output;
+		const bool truncated = !coff.empty();
 		// ---------- END CACHING LAYER ----------
 
 		// Render it with wrapping
@@ -294,14 +302,26 @@ namespace ImGui
 		ImGui::TextUnformatted(s.c_str());
 		ImGui::PopTextWrapPos();
 
+		bool want_tooltip = (flags & (TextLimitedFlags_TooltipShowAll | TextLimitedFlags_TooltipShowCutoff)) != 0;
+
 		// Tooltip with full text
-		if (show_tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+		if (want_tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
 		{
+			std::string tooltip_text;
+			if (truncated && (flags & TextLimitedFlags_TooltipShowCutoff))
+			{
+				tooltip_text = "..." + coff;
+			}
+			else if (flags & TextLimitedFlags_TooltipShowAll)
+			{
+				tooltip_text = text;
+			}
+
 			ImGui::BeginTooltip();
 			const float minWidth = ImGui::GetFontSize() * MINIMUM_TOOLTIP_WIDTH_MULTIPLIER;
 			float tooltipWrapWidth = (avail_w > minWidth) ? avail_w : minWidth;
 			ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + tooltipWrapWidth);
-			ImGui::TextUnformatted(text);
+			ImGui::TextUnformatted(tooltip_text.c_str());
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
