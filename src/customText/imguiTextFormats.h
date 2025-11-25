@@ -109,4 +109,114 @@ namespace ImGui
 		TextLimitedV(false, -1.0f, 0.0f, true, fmt, args);
 		va_end(args);
 	}
+
+	static std::string EllipsizeMultilineFit(const char* text, float wrap_width, float max_height)
+	{
+		const char* dots = "...";
+
+		if (!text)
+			return {};
+		if (wrap_width <= 0.0f || max_height <= 0.0f)
+			return dots;
+
+		// First see if we need to truncate at all
+		ImVec2 full = ImGui::CalcTextSize(text, nullptr, false, wrap_width);
+		if (full.y <= max_height)
+			return text;
+
+		// Build a table of UTF-8 codepoint boundaries so we never split a codepoint
+		std::vector<const char*> cps;
+		cps.reserve(strlen(text) + 1);
+
+		const char* p = text;
+		while (*p)
+		{
+			cps.push_back(p);
+			unsigned char c = (unsigned char)*p++;
+			if (c & 0x80)        // multibyte
+				while ((*p & 0xC0) == 0x80) // continuation bytes
+					p++;
+		}
+		const char* text_end = p;
+		cps.push_back(text_end); // sentinel end
+
+		const int cp_count = (int)cps.size() - 1; // last index with an actual codepoint
+		if (cp_count <= 0)
+			return dots;
+
+		// Binary search the largest prefix that still fits when we append "..."
+		int lo = 0;
+		int hi = cp_count; // we know full text doesn't fit, but it's ok for the search
+
+		while (lo < hi)
+		{
+			int mid = (lo + hi + 1) / 2; // bias upward
+
+			std::string tmp(text, cps[mid]);
+			tmp += dots;
+
+			ImVec2 sz = ImGui::CalcTextSize(tmp.c_str(), nullptr, false, wrap_width);
+			if (sz.y <= max_height)
+				lo = mid;   // this fits, try to take more
+			else
+				hi = mid - 1; // too tall, take less
+		}
+
+		if (lo <= 0)
+			return dots; // not even one codepoint + "..." fits nicely
+
+		std::string out(text, cps[lo]);
+		out += dots;
+		return out;
+	}
+	// max_height_px <= 0 -> use max_lines * line_height
+	void TextWrappedLimited(
+		const char* text,
+		float max_width = -1.0f,
+		float max_height_px = -1.0f,
+		int   max_lines = 5,
+		float padding_px = 0.0f,
+		bool  show_tooltip = true)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		if (!text)
+			text = "";
+
+		// Compute available wrap width 
+		float avail_w = (max_width >= 0.0f ? max_width : ImGui::GetContentRegionAvail().x) - padding_px;
+		if (avail_w < 0.0f)
+			avail_w = 0.0f;
+
+		// Compute max height in pixels
+		if (max_height_px <= 0.0f)
+		{
+			float line_h = ImGui::GetTextLineHeight(); // no extra item spacing to keep it tighter
+			max_height_px = line_h * (float)max_lines;
+		}
+
+		// Build the visible string with multiline ellipsis
+		std::string s = EllipsizeMultilineFit(text, avail_w, max_height_px);
+
+		// Render it with wrapping
+		float wrap_pos = ImGui::GetCursorPos().x + avail_w; // window-local
+		ImGui::PushTextWrapPos(wrap_pos);
+		ImGui::TextUnformatted(s.c_str());
+		ImGui::PopTextWrapPos();
+
+		// Tooltip with full text
+		if (show_tooltip && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+		{
+			ImGui::BeginTooltip();
+			const float minWidth = ImGui::GetFontSize() * MINIMUM_TOOLTIP_WIDTH_MULTIPLIER;
+			float tooltipWrapWidth = (avail_w > minWidth) ? avail_w : minWidth;
+			ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + tooltipWrapWidth);
+			ImGui::TextUnformatted(text);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	}
+
 }

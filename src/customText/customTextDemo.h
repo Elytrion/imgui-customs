@@ -47,6 +47,19 @@ inline void CustomTextDemo::DrawSelectedDemo()
 		"The tooltip should wrap around for you to see the entire text, with it's maximum width limited to the window width as well."
 		"To prove formatting works, here is the display of current FPS: %.2f",
 		ImGui::GetIO().Framerate);
+
+	ImGui::Spacing();
+
+	ImGui::TextWrappedLimited(
+		"This is an example of wrapped text that is also limited in height. "
+		"Text will first wrap, but if it will exceed a given height limit it will be cut off and replaced with an ellipsis (...). "
+		"The entire text will be shown in a tooltip when you hover over the text (toggleable). "
+		"This is useful for displaying potentially long paragraphs of text that does not consume too much UI space if the window size is changed."
+		"Formatting is currently not available for this text type, and it may incur some slight performance penalties due to binary searching through the text provided each frame.",
+		-1.0f,    // max width (use content region)
+		-1.0f,    // max height in pixels (< 0 -> use max lines)
+		3         // max lines (used if max height not specified)
+	);
 }
 
 inline void CustomTextDemo::OnPrePanel()
