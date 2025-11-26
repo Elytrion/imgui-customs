@@ -41,6 +41,10 @@ inline void CustomTextDemo::DrawSelectedDemo()
 	ImGui::SeparatorText("Custom Text Formats");
 	ImGui::Spacing();
 
+    ImGui::TextWithAnimatedDots("This is some text with animated trailing dots");
+
+	ImGui::Spacing();
+
 	ImGui::TextLimitedF("This is some formatted text that is limited by the window space. "
 		"Text that exceeds the limit is cut off and replaced with an ellipsis (...). "
 		"The entire text will be shown in a tooltip when you hover over the text (toggleable). "

@@ -330,5 +330,15 @@ namespace ImGui
 		}
 	}
 
-	
+	inline std::string GetAnimatedDots(int dotCount = 3, float secondsPerStep = 0.3f)
+	{		
+		int dots = static_cast<int>(ImGui::GetTime() / secondsPerStep) % (dotCount + 1);
+		return std::string(dots, '.');
+	}
+
+	inline void TextWithAnimatedDots(const char* text, int dotCount = 3, float secondsPerStep = 0.3f)
+	{
+		std::string dots = GetAnimatedDots(dotCount, secondsPerStep);
+		ImGui::TextUnformatted((std::string(text) + dots).c_str());
+	}
 }
