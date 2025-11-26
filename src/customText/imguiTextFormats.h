@@ -104,7 +104,7 @@ namespace ImGui
 	}
 
 	// Draw text that is limited to a maximum width, adding "..." as needed.
-	void TextLimited(
+	inline void TextLimited(
 		const char* text,
 		bool cut_left = false,
 		float max_width = -1.0f,
@@ -142,7 +142,7 @@ namespace ImGui
 			ImGui::EndTooltip();
 		}
 	}
-	void TextLimitedV(bool cut_left, float max_width, float padding_px, TextLimitedFlags flags, const char* fmt, va_list args)
+	inline void TextLimitedV(bool cut_left, float max_width, float padding_px, TextLimitedFlags flags, const char* fmt, va_list args)
 	{
 		ImGuiWindow* window = GetCurrentWindow();
 		if (window->SkipItems)
@@ -152,7 +152,7 @@ namespace ImGui
 		ImFormatStringToTempBufferV(&text, &text_end, fmt, args);
 		TextLimited(text, cut_left, max_width, padding_px, flags);
 	}
-	void TextLimitedF(bool cut_left, float max_width, float padding_px, TextLimitedFlags flags, const char* fmt, ...)
+	inline void TextLimitedF(bool cut_left, float max_width, float padding_px, TextLimitedFlags flags, const char* fmt, ...)
 	{
 		va_list args;
 		va_start(args, fmt);
@@ -160,7 +160,7 @@ namespace ImGui
 		va_end(args);
 	}
 	// Draw formatted text that is limited to a maximum width, adding "..." as needed. Defaults to right cut, full width, no padding, with tooltip.
-	void TextLimitedF(const char* fmt, ...) // default to right cut, full width, no padding, with tooltip
+	inline void TextLimitedF(const char* fmt, ...) // default to right cut, full width, no padding, with tooltip
 	{
 		va_list args;
 		va_start(args, fmt);
@@ -329,4 +329,6 @@ namespace ImGui
 			ImGui::EndTooltip();
 		}
 	}
+
+	
 }

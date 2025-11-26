@@ -22,7 +22,7 @@ namespace ImGui
 	};
 	// Toggle a switch with the given ID and value pointer. The toggle will animate between on/off states,
 	// and can be customized with the ToggleConfig struct. A default ToggleConfig is used if none is provided.
-	void Toggle(const char* str_id, bool* state, const ToggleConfig& cfg = {})
+	inline void Toggle(const char* str_id, bool* state, const ToggleConfig& cfg = {})
 	{
         ImDrawList* dl = ImGui::GetWindowDrawList();
         ImVec2      p = ImGui::GetCursorScreenPos();

@@ -15,7 +15,7 @@ namespace ImGui
 	// Tween a value between min and max based on the inside state, with customizable durations and easing functions.
 	// Each tween is independent and can be controlled by the user, and hence must have a unique ID provided by the user.
 	template<typename T>
-	T Tween(const char* id, bool inside, float upDur, float downDur, const T& min, const T& max, ImGuiTweenFlags flags = ImGuiTweenFlags_StartMin,
+	inline T Tween(const char* id, bool inside, float upDur, float downDur, const T& min, const T& max, ImGuiTweenFlags flags = ImGuiTweenFlags_StartMin,
 		std::function<float(float)> easeFunc = nullptr,
 		std::function<T(const T&, const T&, float)> lerpFunc = [](const T& a, const T& b, float t) { return ImLerp(a, b, t); })
 	{

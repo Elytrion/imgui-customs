@@ -44,7 +44,7 @@ namespace ImGui
         ImGui::TextUnformatted(ascii);
 	}
 
-	void DrawASCIICatPeep(bool withFrame = true, bool center = true)
+    inline void DrawASCIICatPeep(bool withFrame = true, bool center = true)
 	{
         /*
              |\__/,|   (`\
@@ -61,7 +61,7 @@ namespace ImGui
             DrawAsciiArt(kCatArt, center);
 	}
 
-    void DrawASCIIBunnyStare(bool withFrame = true, bool center = true)
+    inline void DrawASCIIBunnyStare(bool withFrame = true, bool center = true)
     {
         static const char* kBunnyArt =
             R"((\_/)

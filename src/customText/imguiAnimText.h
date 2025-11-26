@@ -82,7 +82,7 @@ namespace ImGui
     // amp: vertical wobble in pixels (also used as vertical padding)
     // freq: waves across the whole string
     // speed: cycles per second
-    void TextWobble(const char* text, float amp = 3.0f, float freq = 1.5f, float speed = 1.0f, ImU32 col = IM_COL32_WHITE)
+    inline void TextWobble(const char* text, float amp = 3.0f, float freq = 1.5f, float speed = 1.0f, ImU32 col = IM_COL32_WHITE)
     {
         ImDrawList* dl = ImGui::GetWindowDrawList();
 
@@ -117,7 +117,7 @@ namespace ImGui
     // speed: how quickly each char meanders (steps/sec).
     // chaos: how different neighbors are (bigger = more desync).
     // roughness: 0=linear ping-pong between samples (sharper moves), 1=smoothstep (smoother).
-    void TextShaky(const char* text,
+    inline void TextShaky(const char* text,
         float spread_x = 1.5f, float spread_y = 3.0f,
         float speed = 12.0f, float chaos = 1.0f, float roughness = 0.9f,
         ImU32 col = IM_COL32_WHITE)
@@ -175,7 +175,7 @@ namespace ImGui
     }
 
 
-    void TextGradientEx(const char* text,
+    inline void TextGradientEx(const char* text,
         const ImU32* stops, int stop_count,
 		int mode = 0, // 0 == none, 1 == repeat, 2 == pingpong
         float phase_speed = 0.5f,   // “widths per second”
@@ -245,12 +245,12 @@ namespace ImGui
     }
 
 	// Displays text with a color gradient applied.
-    void TextGradient(const char* text, const ImU32* stops, int stop_count)
+    inline void TextGradient(const char* text, const ImU32* stops, int stop_count)
     {
         TextGradientEx(text, stops, stop_count, 0, 0, 0);
 	}
 	// Displays text with an animated color gradient applied.
-    void TextGradientAnimated(const char* text, const ImU32* stops, int stop_count,
+    inline void TextGradientAnimated(const char* text, const ImU32* stops, int stop_count,
         bool pingpong = true, float phase_speed = 1.0f, float phase_offset = 0.0f)
     {
         TextGradientEx(text, stops, stop_count, (pingpong ? 2 : 1), phase_speed, phase_offset);

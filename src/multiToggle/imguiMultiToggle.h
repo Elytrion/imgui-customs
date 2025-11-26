@@ -23,7 +23,7 @@ namespace ImGui
         ImU32   col_text_active = IM_COL32(255, 255, 255, 255);
 	};
 
-	bool MultiToggle(
+    inline bool MultiToggle(
 		const char* id, int* current,
 		const std::vector<const char*>& labels,
 		const MultiToggleConfig& cfg = {})
