@@ -41,6 +41,14 @@ inline void CustomTextDemo::DrawSelectedDemo()
 
 	ImGui::TextMarquee("marquee1", "This is an example of a text marquee scrolling from right to left!");
 
+    ImGui::TextMarqueeMultiple("marquee2",
+        {
+            "This is an example of a text marquee with multiple strings",
+            "It can either take in a C-style array or a vector of strings",
+			"This is the third string in the marquee",
+            "And this is the fourth string!"
+        }, -1, 75.0f);
+
 	ImGui::Spacing();
 	ImGui::SeparatorText("Custom Text Formats");
 	ImGui::Spacing();

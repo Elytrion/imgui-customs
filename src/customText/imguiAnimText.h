@@ -272,9 +272,12 @@ namespace ImGui
     inline void TextMarquee(
         const char* str_id,
         const char* text,
-        float width = 0.0f,
+        float width = -1.0f,
         float speed = 50.0f,
-        bool right_to_left = true)
+        bool  right_to_left = true,
+        float offscreen_delay = 0.0f, 
+        bool  loop = true,  
+        bool  restart = false) 
     {
         ImGuiWindow* window = ImGui::GetCurrentWindow();
         if (window->SkipItems)
@@ -283,22 +286,195 @@ namespace ImGui
         ImGuiContext& g = *GImGui;
         const ImGuiStyle& style = g.Style;
 
-        // Calculate text size
         ImVec2 text_size = ImGui::CalcTextSize(text, nullptr, false);
         if (text_size.x <= 0.0f)
-            text_size.x = 1.0f; // avoid divide-by-zero / modulo issues
+            text_size.x = 1.0f; // avoid degenerate width
 
-        // Determine visible width
-        float region_w = (width > 0.0f) ? width : ImGui::GetContentRegionAvail().x;
+        float region_w = (width >= 0.0f) ? width : ImGui::GetContentRegionAvail().x;
         if (region_w <= 0.0f)
             region_w = 1.0f;
 
-        // Total ticker item size (height similar to a regular text line with padding)
         ImVec2 item_size(region_w, text_size.y + style.FramePadding.y * 2.0f);
 
         ImGuiID id = window->GetID(str_id);
         ImRect bb(window->DC.CursorPos,
-            { window->DC.CursorPos.x + item_size.x, window->DC.CursorPos.y + item_size.y });
+            ImVec2(window->DC.CursorPos.x + item_size.x,
+                window->DC.CursorPos.y + item_size.y));
+
+        ImGui::ItemSize(item_size, style.FramePadding.y);
+        if (!ImGui::ItemAdd(bb, id))
+            return;
+
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuiStorage* storage = ImGui::GetStateStorage();
+
+        // stores:
+        // offset: current scroll offset
+        // phase : 0 = scrolling, 1 = delay, 2 = done (no loop)
+        // delay_t: accumulated delay time
+        ImGuiID id_offset = id;
+        ImGuiID id_phase = id + 1;
+        ImGuiID id_delayt = id + 2;
+
+        float offset = storage->GetFloat(id_offset, 0.0f);
+        int   phase = storage->GetInt(id_phase, 0); // default: scrolling
+        float delay_t = storage->GetFloat(id_delayt, 0.0f);
+
+        const float full_width = text_size.x + region_w; // distance from right-offscreen to left-offscreen
+
+        // Handle manual restart if in non-looping mode
+        if (!loop && restart)
+        {
+            phase = 0;          // scrolling
+            offset = 0.0f;      // start again offscreen at the entry side
+            delay_t = 0.0f;
+        }
+
+        //  Update internal phase 
+        switch (phase)
+        {
+        case 0: // scrolling
+        {
+            offset += io.DeltaTime * speed;
+
+            // When offset >= full_width, text has fully moved offscreen
+            if (offset >= full_width)
+            {
+                if (loop)
+                {
+                    if (offscreen_delay > 0.0f)
+                    {
+                        // Go into "invisible delay" phase
+                        phase = 1;
+                        delay_t = 0.0f;
+                    }
+                    else
+                    {
+                        // Immediate restart (no offscreen delay)
+                        offset = 0.0f;
+                    }
+                }
+                else
+                {
+                    // One-shot mode: done
+                    phase = 2;
+                }
+            }
+            break;
+        }
+        case 1: // offscreen delay
+        {
+            delay_t += io.DeltaTime;
+            if (delay_t >= offscreen_delay)
+            {
+                // Restart scrolling from beginning
+                phase = 0;
+                offset = 0.0f;
+                delay_t = 0.0f;
+            }
+            break;
+        }
+        case 2: // done, non-looping, waiting for restart
+        default:
+            break;
+        }
+
+        // Save updated state
+        storage->SetFloat(id_offset, offset);
+        storage->SetInt(id_phase, phase);
+        storage->SetFloat(id_delayt, delay_t);
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImU32 col_text = ImGui::GetColorU32(ImGuiCol_Text);
+
+        // Clip rect so text doesn't overflow the widget area
+        ImGui::PushClipRect(bb.Min, bb.Max, true);
+
+        if (phase == 0) // Only draw while actually scrolling
+        {
+            float text_y = bb.Min.y + style.FramePadding.y;
+            float base_x;
+
+            if (right_to_left)
+            {
+                // Start off the right side, move left
+                // offset = 0 -> text's left at right edge (invisible)
+                base_x = bb.Max.x - offset;
+            }
+            else
+            {
+                // Start off the left side, move right
+                // offset = 0 -> text's right at left edge (invisible)
+                base_x = bb.Min.x - text_size.x + offset;
+            }
+
+            draw_list->AddText(ImVec2(base_x, text_y), col_text, text);
+        }
+
+        ImGui::PopClipRect();
+    }
+
+
+    inline void TextMarqueeMultiple(
+        const char* str_id,
+        const char* const* texts,
+        int text_count,
+        float width = -1.0f,
+        float speed = 50.0f,
+        bool right_to_left = true,
+        float delay_between = 1.0f,
+        bool loop_texts = true)
+    {
+        if (text_count <= 0 || texts == nullptr)
+            return;
+
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window->SkipItems)
+            return;
+
+        ImGuiContext& g = *GImGui;
+        const ImGuiStyle& style = g.Style;
+
+        // Determine visible width first (independent of which text is active)
+        float region_w = (width >= 0.0f) ? width : ImGui::GetContentRegionAvail().x;
+        if (region_w <= 0.0f)
+            region_w = 1.0f;
+
+        // compute the current text size below (depends on index)
+        ImGuiID id = window->GetID(str_id);
+
+        // stores:
+        //   index : which text we’re currently showing
+        //   offset: scroll offset for current text
+        //   phase : 0 = scrolling, 1 = delay between texts, 2 = finished (no loop)
+        //   delay_t: accumulated delay time
+        ImGuiStorage* storage = ImGui::GetStateStorage();
+        ImGuiID id_index = id;
+        ImGuiID id_offset = id + 1;
+        ImGuiID id_phase = id + 2;
+        ImGuiID id_delayt = id + 3;
+
+        int   index = storage->GetInt(id_index, 0);
+        float offset = storage->GetFloat(id_offset, 0.0f);
+        int   phase = storage->GetInt(id_phase, 0);       // default: scrolling
+        float delay_t = storage->GetFloat(id_delayt, 0.0f);
+
+        // Clamp index to valid range
+        if (index < 0) index = 0;
+        if (index >= text_count) index = text_count - 1;
+
+        const char* curr_text = texts[index];
+        if (!curr_text) curr_text = "";
+
+        ImVec2 text_size = ImGui::CalcTextSize(curr_text, nullptr, false);
+        if (text_size.x <= 0.0f)
+            text_size.x = 1.0f; // avoid degenerate width
+
+        ImVec2 item_size(region_w, text_size.y + style.FramePadding.y * 2.0f);
+
+        ImRect bb(window->DC.CursorPos,
+            ImVec2(window->DC.CursorPos.x + item_size.x,
+                window->DC.CursorPos.y + item_size.y));
 
         ImGui::ItemSize(item_size, style.FramePadding.y);
         if (!ImGui::ItemAdd(bb, id))
@@ -306,52 +482,115 @@ namespace ImGui
 
         ImGuiIO& io = ImGui::GetIO();
 
-        // Use ImGui's state storage for per-widget offset
-        ImGuiStorage* storage = ImGui::GetStateStorage();
-        float offset = storage->GetFloat(id, 0.0f);
+        const float full_width = text_size.x + region_w; // distance from off-right to off-left
 
-        // Advance offset using deltaTime
-        offset += io.DeltaTime * speed;
-        // Distance before we wrap around: text width + region width
-        float full_width = text_size.x + region_w;
-        if (full_width <= 0.0f)
-            full_width = 1.0f;
-
-        // Wrap offset to [0, full_width)
-        if (offset > full_width)
-            offset = fmodf(offset, full_width);
-        storage->SetFloat(id, offset);
-
-        // Compute base X so that text "enters" from one side
-        float base_x;
-        if (right_to_left)
+        // Update internal phase
+        switch (phase)
         {
-            // Start just off the right side and move left
-            base_x = bb.Min.x + region_w - offset;
-        }
-        else
+        case 0: // scrolling
         {
-            // Start just off the left side and move right
-            base_x = bb.Min.x - text_size.x + offset;
+            offset += io.DeltaTime * speed;
+
+            // Finished scrolling when the text has fully left the visible area
+            if (offset >= full_width)
+            {
+                phase = 1;      // go to "between texts" delay
+                delay_t = 0.0f;
+            }
+            break;
+        }
+        case 1: // delay between texts
+        {
+            delay_t += io.DeltaTime;
+            if (delay_t >= delay_between)
+            {
+                // Move to next text
+                delay_t = 0.0f;
+                offset = 0.0f;
+
+                index++;
+                if (index >= text_count)
+                {
+                    if (loop_texts)
+                    {
+                        index = 0;      // wrap around
+                        phase = 0;      // scroll again
+                    }
+                    else
+                    {
+                        index = text_count - 1; // stay on last
+                        phase = 2;              // finished
+                    }
+                }
+                else
+                {
+                    phase = 0; // start scrolling next text
+                }
+
+                //We changed index, so update curr_text/text_size/full_width for the frame.
+                curr_text = texts[index] ? texts[index] : "";
+                text_size = ImGui::CalcTextSize(curr_text, nullptr, false);
+            }
+            break;
+        }
+        case 2: // finished (no looping)
+        default:
+            break;
         }
 
-        float text_y = bb.Min.y + style.FramePadding.y;
+        // Save state back
+        storage->SetInt(id_index, index);
+        storage->SetFloat(id_offset, offset);
+        storage->SetInt(id_phase, phase);
+        storage->SetFloat(id_delayt, delay_t);
+
+        // Recompute text size in case index changed in this frame
+        curr_text = texts[index] ? texts[index] : "";
+        text_size = ImGui::CalcTextSize(curr_text, nullptr, false);
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-        // Clip to the ticker rect so text doesn't overflow
-        ImGui::PushClipRect(bb.Min, bb.Max, true);
-
         ImU32 col_text = ImGui::GetColorU32(ImGuiCol_Text);
 
-        // First instance
-        draw_list->AddText(ImVec2(base_x, text_y), col_text, text);
+        ImGui::PushClipRect(bb.Min, bb.Max, true);
 
-        // Second instance, shifted by full_width, so scrolling feels continuous
-        float base_x2 = right_to_left ? (base_x + full_width) : (base_x - full_width);
-        draw_list->AddText(ImVec2(base_x2, text_y), col_text, text);
+        if (phase == 0) // only draw while actively scrolling this text
+        {
+            float text_y = bb.Min.y + style.FramePadding.y;
+            float base_x;
+
+            if (right_to_left)
+            {
+                // Start just off the right and move left
+                // offset = 0 -> text’s left is at right edge (invisible)
+                base_x = bb.Max.x - offset;
+            }
+            else
+            {
+                // Start just off the left and move right
+                // offset = 0 -> text’s right is at left edge (invisible)
+                base_x = bb.Min.x - text_size.x + offset;
+            }
+
+            draw_list->AddText(ImVec2(base_x, text_y), col_text, curr_text);
+        }
 
         ImGui::PopClipRect();
     }
 
+    inline void TextMarqueeMultiple(
+        const char* str_id,
+        const std::vector<std::string>& texts,
+        float width = -1.0f,
+        float speed = 50.0f,
+        bool right_to_left = true,
+        float delay_between = 1.0f,
+        bool loop_texts = true)
+    {
+        std::vector<const char*> cstrs;
+        cstrs.reserve(texts.size());
+        for (const auto& s : texts)
+            cstrs.push_back(s.c_str());
+        TextMarqueeMultiple(str_id, cstrs.data(), static_cast<int>(cstrs.size()),
+            width, speed, right_to_left, delay_between, loop_texts);
+	}
 }
