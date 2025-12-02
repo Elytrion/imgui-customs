@@ -37,11 +37,13 @@ inline void CustomTextDemo::DrawSelectedDemo()
 	ImU32 colours2[] = { col_red , col_green, col_blue, col_yellow };
 	ImGui::TextGradientAnimated("This is an example of animated gradient colored text with multiple stops!", colours2, 4, true, 0.2f, 0.5f);
 
+    ImGui::TextWithAnimatedDots("This is some text with animated trailing dots");
+
+	ImGui::TextMarquee("marquee1", "This is an example of a text marquee scrolling from right to left!");
+
 	ImGui::Spacing();
 	ImGui::SeparatorText("Custom Text Formats");
 	ImGui::Spacing();
-
-    ImGui::TextWithAnimatedDots("This is some text with animated trailing dots");
 
 	ImGui::Spacing();
 
@@ -54,17 +56,16 @@ inline void CustomTextDemo::DrawSelectedDemo()
 
 	ImGui::Spacing();
 
-	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 220, 255, 255)); // added color for visibility
-	ImGui::TextWrappedLimited(
+	ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 200, 255, 255)); // added color for visibility
+	ImGui::TextWrappedLimitedF(
 		"STABLE_TEXT_ID_HERE", // must be provided for internal caching to work properly and must be stable and unique per text instance
-		"This is an example of wrapped text that is also limited in height. "
+		"This is an example of formatted wrapped text that is also limited in height. "
 		"Text will first wrap, but if it will exceed a given height limit it will be cut off and replaced with an ellipsis (...). "
 		"The entire text will be shown in a tooltip when you hover over the text (toggleable). "
-		"This is useful for displaying potentially long paragraphs of text that does not consume too much UI space if the window size is changed."
-		"Formatting is currently not available for this text type, and it may incur some slight performance penalties when recalculating text fitting for long paragraphs (> 300 words).",
-		-1.0f,    // max width (use content region)
-		-1.0f,    // max height in pixels (< 0 -> use max lines)
-		3         // max lines (used if max height not specified)
+		"This is useful for displaying potentially long paragraphs of text that does not consume too much UI space if the window size is changed. "
+        "This text element may incur some slight performance penalties when recalculating text fitting for long paragraphs (> 300 words). "
+		"To prove formatting works, here is the display of current FPS: %.2f",
+        ImGui::GetIO().Framerate
 	);
 	ImGui::PopStyleColor();
 }

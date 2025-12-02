@@ -255,4 +255,103 @@ namespace ImGui
     {
         TextGradientEx(text, stops, stop_count, (pingpong ? 2 : 1), phase_speed, phase_offset);
 	}
+
+
+    inline std::string GetAnimatedDots(int dotCount = 3, float secondsPerStep = 0.3f)
+    {
+        int dots = static_cast<int>(ImGui::GetTime() / secondsPerStep) % (dotCount + 1);
+        return std::string(dots, '.');
+    }
+    inline void TextWithAnimatedDots(const char* text, int dotCount = 3, float secondsPerStep = 0.3f)
+    {
+        std::string dots = GetAnimatedDots(dotCount, secondsPerStep);
+        ImGui::TextUnformatted((std::string(text) + dots).c_str());
+    }
+
+
+    inline void TextMarquee(
+        const char* str_id,
+        const char* text,
+        float width = 0.0f,
+        float speed = 50.0f,
+        bool right_to_left = true)
+    {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window->SkipItems)
+            return;
+
+        ImGuiContext& g = *GImGui;
+        const ImGuiStyle& style = g.Style;
+
+        // Calculate text size
+        ImVec2 text_size = ImGui::CalcTextSize(text, nullptr, false);
+        if (text_size.x <= 0.0f)
+            text_size.x = 1.0f; // avoid divide-by-zero / modulo issues
+
+        // Determine visible width
+        float region_w = (width > 0.0f) ? width : ImGui::GetContentRegionAvail().x;
+        if (region_w <= 0.0f)
+            region_w = 1.0f;
+
+        // Total ticker item size (height similar to a regular text line with padding)
+        ImVec2 item_size(region_w, text_size.y + style.FramePadding.y * 2.0f);
+
+        ImGuiID id = window->GetID(str_id);
+        ImRect bb(window->DC.CursorPos,
+            { window->DC.CursorPos.x + item_size.x, window->DC.CursorPos.y + item_size.y });
+
+        ImGui::ItemSize(item_size, style.FramePadding.y);
+        if (!ImGui::ItemAdd(bb, id))
+            return;
+
+        ImGuiIO& io = ImGui::GetIO();
+
+        // Use ImGui's state storage for per-widget offset
+        ImGuiStorage* storage = ImGui::GetStateStorage();
+        float offset = storage->GetFloat(id, 0.0f);
+
+        // Advance offset using deltaTime
+        offset += io.DeltaTime * speed;
+        // Distance before we wrap around: text width + region width
+        float full_width = text_size.x + region_w;
+        if (full_width <= 0.0f)
+            full_width = 1.0f;
+
+        // Wrap offset to [0, full_width)
+        if (offset > full_width)
+            offset = fmodf(offset, full_width);
+        storage->SetFloat(id, offset);
+
+        // Compute base X so that text "enters" from one side
+        float base_x;
+        if (right_to_left)
+        {
+            // Start just off the right side and move left
+            base_x = bb.Min.x + region_w - offset;
+        }
+        else
+        {
+            // Start just off the left side and move right
+            base_x = bb.Min.x - text_size.x + offset;
+        }
+
+        float text_y = bb.Min.y + style.FramePadding.y;
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+        // Clip to the ticker rect so text doesn't overflow
+        ImGui::PushClipRect(bb.Min, bb.Max, true);
+
+        ImU32 col_text = ImGui::GetColorU32(ImGuiCol_Text);
+
+        // First instance
+        draw_list->AddText(ImVec2(base_x, text_y), col_text, text);
+
+        // Second instance, shifted by full_width, so scrolling feels continuous
+        float base_x2 = right_to_left ? (base_x + full_width) : (base_x - full_width);
+        draw_list->AddText(ImVec2(base_x2, text_y), col_text, text);
+
+        ImGui::PopClipRect();
+    }
+
 }
