@@ -237,7 +237,7 @@ namespace ImGui
 		const char* text,
 		float max_width = -1.0f,
 		float max_height_px = -1.0f, // max_height_px <= 0 -> use max_lines * line_height
-		int   max_lines = 5,
+		int   max_lines = 3,
 		float padding_px = 0.0f,
 		TextLimitedFlags flags = TextLimitedFlags_TooltipShowAll)
 	{
@@ -329,16 +329,42 @@ namespace ImGui
 			ImGui::EndTooltip();
 		}
 	}
-
-	inline std::string GetAnimatedDots(int dotCount = 3, float secondsPerStep = 0.3f)
-	{		
-		int dots = static_cast<int>(ImGui::GetTime() / secondsPerStep) % (dotCount + 1);
-		return std::string(dots, '.');
-	}
-
-	inline void TextWithAnimatedDots(const char* text, int dotCount = 3, float secondsPerStep = 0.3f)
+	inline void TextWrappedLimitedV(
+		const char* itemID,
+		float max_width, float max_height_px,
+		int   max_lines, float padding_px,
+		TextLimitedFlags flags,
+		const char* fmt, va_list args)
 	{
-		std::string dots = GetAnimatedDots(dotCount, secondsPerStep);
-		ImGui::TextUnformatted((std::string(text) + dots).c_str());
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+		const char* text, * text_end;
+		ImFormatStringToTempBufferV(&text, &text_end, fmt, args);
+		TextWrappedLimited(itemID, text, max_width, max_height_px, max_lines, padding_px, flags);
 	}
+	inline void TextWrappedLimitedF(
+		const char* itemID,
+		float max_width, float max_height_px,
+		int   max_lines, float padding_px,
+		TextLimitedFlags flags,
+		const char* fmt, ...)
+	{
+		va_list args;
+		va_start(args, fmt);
+		TextWrappedLimitedV(itemID, max_width, max_height_px, max_lines, padding_px, flags, fmt, args);
+		va_end(args);
+	}
+	// Draw formatted wrapped text that is limited to 3 lines by default, adding "..." as needed. Defaults to full width, 3 line height, no padding, with tooltip.
+	inline void TextWrappedLimitedF(
+		const char* itemID,
+		const char* fmt, ...) // default to full width, 3 lines, no padding, with tooltip
+	{
+		va_list args;
+		va_start(args, fmt);
+		TextWrappedLimitedV(itemID, -1.0f, -1.0f, 3, 0.0f, TextLimitedFlags_TooltipShowAll, fmt, args);
+		va_end(args);
+	}
+
+
 }
