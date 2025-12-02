@@ -85,13 +85,16 @@ inline void CustomTextDemo::OnPrePanel()
 	
 }
 
+
+
 inline void CustomTextDemo::DrawDemoPanel()
 {
+    #pragma region Variables
     // --- persistent UI state for the demo ---
     static char text_buf[1024] =
         "This is some custom text! Try changing the type and settings to see different effects.";
     static int  text_type = 0; // 0=Plain, 1=Wobble, 2=Shaky, 3=Gradient, 4=Limited, 5=WrappedLimited
-
+	static std::vector<std::string> text_bufs{}; // used for multi-line text input
     // Wobble params
     static float wobble_amp = 3.0f;
     static float wobble_freq = 1.5f;
@@ -152,6 +155,16 @@ inline void CustomTextDemo::DrawDemoPanel()
     if (twl_tooltip_mode == 1)      twl_flags = TextLimitedFlags_TooltipShowCutoff;
     else if (twl_tooltip_mode == 2) twl_flags = TextLimitedFlags_NoTooltip;
 
+	// Marquee params
+    static float mq_width = -1.0f;
+	static float mq_speed = 50.0f;
+	static bool  mq_right_to_left = true;
+	static float mq_offscreen_delay = 0.0f;
+	static bool  mq_loop = true;
+	static bool  mq_restart = false;
+	static float mq_gap = -1.0f;
+    #pragma endregion
+
     // --------------------------------------------------------------------
     // 1) PREVIEW
     // --------------------------------------------------------------------
@@ -198,6 +211,19 @@ inline void CustomTextDemo::DrawDemoPanel()
             twl_padding_x,
             twl_flags);
         break;
+    case 6: // Single line marquee
+		ImGui::TextMarquee(
+            "CustomTextDemo_SingleMarqueePreview",
+            text_buf, mq_width, mq_speed, mq_right_to_left, mq_offscreen_delay, mq_loop, mq_restart);
+        if (mq_restart)
+			mq_restart = false;
+		break;
+	case 7: // Multi line marquee
+        ImGui::TextMarqueeMultiple(
+            "CustomTextDemo_MultiMarqueePreview",
+            text_bufs,
+			mq_width, mq_speed, mq_right_to_left, mq_gap, mq_loop);
+        break;
     }
     ImGui::EndGroup();
 
@@ -208,8 +234,33 @@ inline void CustomTextDemo::DrawDemoPanel()
     // 2) INPUT TEXT
     // --------------------------------------------------------------------
     ImGui::SeparatorText("Text Input");
+
     ImGui::InputTextMultiline("##CustomTextDemoInput", text_buf, IM_ARRAYSIZE(text_buf),
         ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5.0f), ImGuiInputTextFlags_WordWrap);
+
+    if (text_type == 7)
+    {
+		// we split the input everytime the user uses the '|' character, treating each segment as a new line
+        text_bufs.clear();
+        {
+            std::string current;
+            for (const char* p = text_buf; *p; ++p)
+            {
+                if (*p == '|')
+                {
+                    if (!current.empty())
+                        text_bufs.push_back(current);
+                    current.clear();
+                }
+                else
+                {
+                    current.push_back(*p);
+                }
+            }
+            if (!current.empty())
+                text_bufs.push_back(current);
+        }
+    }
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -224,7 +275,9 @@ inline void CustomTextDemo::DrawDemoPanel()
         "Shaky (Animated)",
         "Gradient / Gradient Animated",
         "Limited (Single-line, Ellipsis)",
-        "Wrapped Limited (Multi-line, Height Clamp)"
+        "Wrapped Limited (Multi-line, Height Clamp)",
+		"Marquee (Single-line, Scrolling)",
+		"Marquee (Multi-line, Scrolling)",
     };
     ImGui::Combo("Type", &text_type, text_type_items, IM_ARRAYSIZE(text_type_items));
 
@@ -308,6 +361,30 @@ inline void CustomTextDemo::DrawDemoPanel()
         ImGui::Combo("Tooltip Mode", &twl_tooltip_mode, tooltip_modes, IM_ARRAYSIZE(tooltip_modes));
         break;
     }
+    case 6: // Single-line Marquee
+    {
+        ImGui::TextDisabled("Single-line Marquee Settings");
+        ImGui::SliderFloat("Visible Width", &mq_width, -1.0f, 800.0f,
+            (mq_width < 0.0f) ? "Content Region" : "%.0f px");
+        ImGui::SliderFloat("Speed", &mq_speed, 10.0f, 500.0f, "%.1f px/s");
+        ImGui::Checkbox("Right to Left", &mq_right_to_left);
+        ImGui::SliderFloat("Offscreen Delay", &mq_offscreen_delay, 0.0f, 5.0f, "%.1f s");
+        ImGui::Checkbox("Loop", &mq_loop);
+        ImGui::Checkbox("Restart loop", &mq_restart);
+		break;
+    }
+    case 7: // Multi-line Marquee
+    {
+        ImGui::TextDisabled("Multi-line Marquee Settings");
+        ImGui::SliderFloat("Visible Width", &mq_width, -1.0f, 800.0f,
+            (mq_width < 0.0f) ? "Content Region" : "%.0f px");
+        ImGui::SliderFloat("Speed", &mq_speed, 10.0f, 500.0f, "%.1f px/s");
+		ImGui::Checkbox("Right to Left", &mq_right_to_left);
+		ImGui::SliderFloat("Gap Between Lines", &mq_gap, -1.0f, 200.0f,
+			(mq_gap < 0.0f) ? "Sequential Mode" : "%.0f px");
+		ImGui::Checkbox("Loop Lines", &mq_loop);
+        break;
+	}
 
     default:
         ImGui::TextDisabled("No extra settings for this type.");
