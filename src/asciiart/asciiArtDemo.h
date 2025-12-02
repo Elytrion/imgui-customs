@@ -28,7 +28,8 @@ inline void ASCIIArtDemo::DrawSelectedDemo()
 	}
 
 	ImGui::SeparatorText("ASCII Art Demo");
-	ImGui::TextWrapped("This demo showcases some fun functions for drawing premade ASCII artwork using text.");
+	ImGui::TextWrapped("This demo showcases some fun functions for drawing premade ASCII artwork using text."
+	"This is mostly just for fun, and self-interest in ASCII art.");
 	ImGui::Spacing();
 
 	ImGui::DrawASCIICatPeep();
