@@ -45,9 +45,11 @@ inline void CustomTextDemo::DrawSelectedDemo()
         {
             "This is an example of a text marquee with multiple strings",
             "It can either take in a C-style array or a vector of strings",
-			"This is the third string in the marquee",
-            "And this is the fourth string!"
-        }, -1, 75.0f);
+			"The gap between each string is determined in screen-space pixels",
+            "And this is the last string!",
+			"                                       " // large gap for separation of loops, up to you to adjust
+        },
+        -1, 100.0f, true, 100.0f);
 
 	ImGui::Spacing();
 	ImGui::SeparatorText("Custom Text Formats");
