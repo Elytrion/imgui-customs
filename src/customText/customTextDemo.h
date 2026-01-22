@@ -78,6 +78,8 @@ inline void CustomTextDemo::DrawSelectedDemo()
         ImGui::GetIO().Framerate
 	);
 	ImGui::PopStyleColor();
+
+    ImGui::Spacing();
 }
 
 inline void CustomTextDemo::OnPrePanel()

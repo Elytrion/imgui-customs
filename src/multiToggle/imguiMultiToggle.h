@@ -7,7 +7,7 @@ namespace ImGui
 	struct MultiToggleConfig
 	{
 		ImVec2  size{ 0,0 };     // (0,0) -> auto height, width = content avail
-		float   rounding = -1.f;    // -1 = half height
+		float   rounding = -1.f;    // -1 = fully rounded
 		float   plate_pad = 6.f;     // inner padding around plate
 		float   gap = 8.f;     // gap between unequal sections
 		bool    equal_sections = true;    // true: even split; false: size by measured text
