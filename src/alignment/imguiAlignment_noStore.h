@@ -2,13 +2,56 @@
 #include <string>
 #include <utility>
 #include <imgui.h>
-#include "windowStore/imguiWindowStore.h"
-// you can replace window store with a global cache or directly using ImGui::GetStateStorage()
-// see imguiAlignment_noStore.h for an example without window store
+#include <imgui_internal.h>
 
 enum class AlignX { Left, Center, Right };
 enum class AlignY { Top, Middle, Bottom };
 
+namespace
+{
+	inline ImGuiID AlignBaseKey(const char* id)
+	{
+		return ImGui::GetID(id);
+	}
+	inline ImGuiID AlignKey(ImGuiID base, const char* tag)
+	{
+		// Hash the tag under base key scope (no allocations, no temporary strings)
+		return ImHashStr(tag, 0, base);
+	}
+	inline ImGuiID AlignPresentKey(ImGuiID base, const char* tag)
+	{
+		ImGuiID k = AlignKey(base, tag);
+		return ImHashStr("##__present", 0, k);
+	}
+	inline bool AlignHas(ImGuiStorage* st, ImGuiID base, const char* tag)
+	{
+		return st->GetBool(AlignPresentKey(base, tag), false);
+	}
+	inline void AlignMarkPresent(ImGuiStorage* st, ImGuiID base, const char* tag)
+	{
+		st->SetBool(AlignPresentKey(base, tag), true);
+	}
+	inline ImVec2 AlignGetVec2(ImGuiStorage* st, ImGuiID base, const char* tag, ImVec2 def = ImVec2(0, 0))
+	{
+		ImGuiID k = AlignKey(base, tag);
+		ImGuiID kx = ImHashStr("##x", 0, k);
+		ImGuiID ky = ImHashStr("##y", 0, k);
+		return ImVec2(st->GetFloat(kx, def.x), st->GetFloat(ky, def.y));
+	}
+	inline void AlignSetVec2(ImGuiStorage* st, ImGuiID base, const char* tag, ImVec2 v)
+	{
+		ImGuiID k = AlignKey(base, tag);
+		ImGuiID kx = ImHashStr("##x", 0, k);
+		ImGuiID ky = ImHashStr("##y", 0, k);
+		st->SetFloat(kx, v.x);
+		st->SetFloat(ky, v.y);
+		AlignMarkPresent(st, base, tag);
+	}
+	inline void AlignClear(ImGuiStorage* st, ImGuiID base, const char* tag)
+	{
+		st->SetBool(AlignPresentKey(base, tag), false);
+	}
+}
 
 namespace ImGui
 {
@@ -23,12 +66,10 @@ namespace ImGui
 		const char* cache_tag = "ag_size")
 	{
 		const ImVec2 cursor_before = ImGui::GetCursorPos();
-
-		ImGuiID base = ImGui::GetID(id);
-		auto store = ImGui::GetWindowStore(base);
-
-		const bool newPass = !store.Has(cache_tag);
-		const ImVec2 size = store.GetVec2(cache_tag, ImVec2(0, 0));
+		ImGuiStorage* st = ImGui::GetStateStorage();
+		const ImGuiID base = AlignBaseKey(id);
+		const bool newPass = !AlignHas(st, base, cache_tag);
+		const ImVec2 size = AlignGetVec2(st, base, cache_tag, ImVec2(0, 0));
 
 		if (newPass)
 		{
@@ -80,7 +121,7 @@ namespace ImGui
 			ImGui::PopStyleVar();
 		}
 
-		store.SetVec2(cache_tag, ImGui::GetItemRectSize());
+		AlignSetVec2(st, base, cache_tag, ImGui::GetItemRectSize());
 
 		if (restore_cursor_after)
 			ImGui::SetCursorPos(cursor_before);
@@ -89,11 +130,11 @@ namespace ImGui
 	template<typename Widgets>
 	void RightAlignedGroup(const char* id, Widgets&& widgets, float offsetX = 0, float offsetY = 0)
 	{
-		ImGuiID base = ImGui::GetID(id);
-		auto store = ImGui::GetWindowStore(base);
-
-		bool newPass = !store.Has("ral_group_size");
-		ImVec2 widgetSpace = store.GetVec2("ral_group_size", ImVec2(0, 0));
+		const char* cache_tag = "ral_group_size";
+		ImGuiStorage* st = ImGui::GetStateStorage();
+		const ImGuiID base = AlignBaseKey(id);
+		const bool newPass = !AlignHas(st, base, cache_tag);
+		const ImVec2 widgetSpace = AlignGetVec2(st, base, cache_tag, ImVec2(0, 0));
 
 		if (newPass)
 		{
@@ -127,17 +168,17 @@ namespace ImGui
 			ImGui::PopStyleVar();
 		}
 
-		store.SetVec2("ral_group_size", ImGui::GetItemRectSize());
+		AlignSetVec2(st, base, cache_tag, ImGui::GetItemRectSize());
 	}
 
 	template<typename Widgets>
 	void CenterAlignedGroup(const char* id, Widgets&& widgets, float offsetX = 0, float offsetY = 0)
 	{
-		ImGuiID base = ImGui::GetID(id);
-		auto store = ImGui::GetWindowStore(base);
-
-		const bool  newPass = !store.Has("cal_group_size");
-		const ImVec2 widgetSpace = store.GetVec2("cal_group_size", ImVec2(0, 0));
+		const char* cache_tag = "ral_group_size";
+		ImGuiStorage* st = ImGui::GetStateStorage();
+		const ImGuiID base = AlignBaseKey(id);
+		const bool newPass = !AlignHas(st, base, cache_tag);
+		const ImVec2 widgetSpace = AlignGetVec2(st, base, cache_tag, ImVec2(0, 0));
 
 		if (newPass)
 		{
@@ -177,7 +218,7 @@ namespace ImGui
 			ImGui::PopStyleVar();
 		}
 
-		store.SetVec2("cal_group_size", ImGui::GetItemRectSize());
+		AlignSetVec2(st, base, cache_tag, ImGui::GetItemRectSize());
 	}
 
 
