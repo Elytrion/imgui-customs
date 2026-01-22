@@ -10,6 +10,7 @@
 #include "progressBar/progressBarDemo.h"
 #include "customText/customTextDemo.h"
 #include "asciiart/asciiArtDemo.h"
+#include "alignment/alignmentDemo.h"
 
 void DemoManager::InitModules()
 {
@@ -24,4 +25,5 @@ void DemoManager::InitModules()
 	RegisterDemoModule(std::make_shared<ProgressBarDemo>());
 	RegisterDemoModule(std::make_shared<CustomTextDemo>());
 	RegisterDemoModule(std::make_shared<ASCIIArtDemo>());
+	RegisterDemoModule(std::make_shared<AlignmentDemo>());
 }
