@@ -10,6 +10,11 @@ protected:
 	void DrawSelectedDemo();
 	void OnPrePanel() override;
 	void DrawDemoPanel() override;
+
+	bool mRemovedWindowPadding = false;
+	bool mModifyOffset = false;
+	bool mWasModifyingOffset = false;
+	ImVec2 mOffsets[9];
 };
 
 inline void AlignmentDemo::DrawSelectedDemo()
@@ -51,33 +56,63 @@ inline void AlignmentDemo::DrawDemoPanel()
 {
 	ImVec2 windowSize = ImGui::GetWindowSize();
 
-	if (ImGui::BeginChild("alignment_demo_child", ImVec2(0, windowSize.y * 0.7), ImGuiChildFlags_Borders))
+	if (mRemovedWindowPadding)
 	{
-
-		ImGui::AlignmentGroup("TopLeftGroup", AlignX::Left, AlignY::Top, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+	}
+	if (ImGui::BeginChild("alignment_demo_child", ImVec2(0, windowSize.y * 0.5f), ImGuiChildFlags_Borders))
+	{
+		const ImVec2 btnSize = ImVec2(25.0f, 25.0f);
+		ImGui::AlignmentGroup("TopLeftGroup", AlignX::Left, AlignY::Top, [&]() { ImGui::Button("o", btnSize); }, mOffsets[0]);
 		ImGui::SameLine();
-		ImGui::AlignmentGroup("TopCenterGroup", AlignX::Center, AlignY::Top, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
+		ImGui::AlignmentGroup("TopCenterGroup", AlignX::Center, AlignY::Top, [&]() { ImGui::Button("o", btnSize); }, mOffsets[1]);
 		ImGui::SameLine();
-		ImGui::AlignmentGroup("TopRightGroup", AlignX::Right, AlignY::Top, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
-
-		ImGui::Spacing();
-
-		ImGui::AlignmentGroup("MiddleLeftGroup", AlignX::Left, AlignY::Middle, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
-		ImGui::SameLine();
-		ImGui::AlignmentGroup("MiddleCenterGroup", AlignX::Center, AlignY::Middle, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
-		ImGui::SameLine();
-		ImGui::AlignmentGroup("MiddleRightGroup", AlignX::Right, AlignY::Middle, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
+		ImGui::AlignmentGroup("TopRightGroup", AlignX::Right, AlignY::Top, [&]() { ImGui::Button("o", btnSize); }, mOffsets[2]);
 
 		ImGui::Spacing();
 
-		ImGui::AlignmentGroup("BottomLeftGroup", AlignX::Left, AlignY::Bottom, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
+		ImGui::AlignmentGroup("MiddleLeftGroup", AlignX::Left, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[3]);
 		ImGui::SameLine();
-		ImGui::AlignmentGroup("BottomCenterGroup", AlignX::Center, AlignY::Bottom, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
+		ImGui::AlignmentGroup("MiddleCenterGroup", AlignX::Center, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[4]);
 		ImGui::SameLine();
-		ImGui::AlignmentGroup("BottomRightGroup", AlignX::Right, AlignY::Bottom, [&]() { ImGui::Button("o", ImVec2(50, 50)); });
+		ImGui::AlignmentGroup("MiddleRightGroup", AlignX::Right, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[5]);
+
+		ImGui::Spacing();
+
+		ImGui::AlignmentGroup("BottomLeftGroup", AlignX::Left, AlignY::Bottom, [&]() { ImGui::Button("o", btnSize); }, mOffsets[6]);
+		ImGui::SameLine();
+		ImGui::AlignmentGroup("BottomCenterGroup", AlignX::Center, AlignY::Bottom, [&]() { ImGui::Button("o", btnSize); }, mOffsets[7]);
+		ImGui::SameLine();
+		ImGui::AlignmentGroup("BottomRightGroup", AlignX::Right, AlignY::Bottom, [&]() { ImGui::Button("o", btnSize); }, mOffsets[8]);
 
 
 		ImGui::EndChild();
+	}
+	if (mRemovedWindowPadding)
+	{
+		ImGui::PopStyleVar();
+	}
+	ImGui::Spacing();
+
+	ImGui::Checkbox("Remove Window Padding", &mRemovedWindowPadding);
+
+	ImGui::Checkbox("Modify Offsets", &mModifyOffset);
+
+	if (mModifyOffset)
+	{
+		mWasModifyingOffset = true;
+		for (int i = 0; i < 9; ++i)
+		{
+			ImGui::SliderFloat2(("Offset " + std::to_string(i)).c_str(), (float*)&mOffsets[i], -50.0f, 50.0f);
+		}
+	}
+	else if (mWasModifyingOffset)
+	{
+		for (int i = 0; i < 9; ++i)
+		{
+			mOffsets[i] = ImVec2(0.0f, 0.0f);
+		}
+		mWasModifyingOffset = false;
 	}
 
 	ImGui::Spacing();
