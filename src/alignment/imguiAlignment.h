@@ -62,9 +62,11 @@ namespace ImGui
 			(ay == AlignY::Middle) ? 0.5f :
 			1.0f;
 
-		ImGui::SetCursorPos(ImVec2(anchor_x - size.x * pivot_x + offset.x,
-			anchor_y - size.y * pivot_y + offset.y));
-
+		const ImVec2 cursorPos = ImVec2(anchor_x - size.x * pivot_x + offset.x,
+										anchor_y - size.y * pivot_y + offset.y);
+		ImGui::SetCursorPos(cursorPos);
+		ImGui::Dummy(ImVec2(0, 0)); // to make sure the cursor position is updated before BeginGroup
+		ImGui::SetCursorPos(cursorPos); // need to set again after Dummy to avoid it consuming the pos set
 		ImGui::PushID(id);
 		ImGui::BeginGroup();
 		widgets();

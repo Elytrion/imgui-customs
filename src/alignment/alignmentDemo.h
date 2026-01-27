@@ -14,6 +14,7 @@ protected:
 	bool mRemovedWindowPadding = false;
 	bool mModifyOffset = false;
 	bool mWasModifyingOffset = false;
+	bool mShowMultiElementAlignment = false;
 	ImVec2 mOffsets[9];
 };
 
@@ -73,7 +74,16 @@ inline void AlignmentDemo::DrawDemoPanel()
 
 		ImGui::AlignmentGroup("MiddleLeftGroup", AlignX::Left, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[3]);
 		ImGui::SameLine();
-		ImGui::AlignmentGroup("MiddleCenterGroup", AlignX::Center, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[4]);
+		ImGui::AlignmentGroup("MiddleCenterGroup", AlignX::Center, AlignY::Middle, [&]()
+			{ 
+				ImGui::Button("o", btnSize);
+				if (mShowMultiElementAlignment)
+				{
+					ImGui::SameLine(); ImGui::Button("x", btnSize);
+					ImGui::Button("1", btnSize); ImGui::SameLine(); ImGui::Button("2", btnSize);
+				}
+			},
+			mOffsets[4]);
 		ImGui::SameLine();
 		ImGui::AlignmentGroup("MiddleRightGroup", AlignX::Right, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[5]);
 
@@ -97,6 +107,8 @@ inline void AlignmentDemo::DrawDemoPanel()
 	ImGui::Checkbox("Remove Window Padding", &mRemovedWindowPadding);
 
 	ImGui::Checkbox("Modify Offsets", &mModifyOffset);
+
+	ImGui::Checkbox("Show Multi-Element Alignment", &mShowMultiElementAlignment);
 
 	if (mModifyOffset)
 	{
