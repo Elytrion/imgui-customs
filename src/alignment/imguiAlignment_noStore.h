@@ -227,5 +227,89 @@ namespace ImGui
 		AlignSetVec2(st, base, cache_tag, ImGui::GetItemRectSize());
 	}
 
+	struct HorizontalMidGroup
+	{
+		ImGuiStorage* St = nullptr;
+		ImGuiID Base = 0;
 
+		ImVec2 StartCursor{};
+		float SpacingX = 0.0f;
+
+		float CachedRowH = 0.0f;
+		float MeasuredRowH = 0.0f;
+		float X = 0.0f;
+
+		bool Begun = false;
+
+		// Tags (hashed under Base)
+		static constexpr const char* kRowH = "##hmg_row_h"; // stored as Vec2(y = height)
+
+		explicit HorizontalMidGroup(const char* row_id)
+		{
+			Base = AlignBaseKey(row_id);
+			St = ImGui::GetStateStorage();
+
+			StartCursor = ImGui::GetCursorPos();
+			SpacingX = ImGui::GetStyle().ItemSpacing.x;
+
+			// Read cached row height (we store it in Vec2.y)
+			if (AlignHas(St, Base, kRowH))
+				CachedRowH = AlignGetVec2(St, Base, kRowH, ImVec2(0, 0)).y;
+			else
+				CachedRowH = 0.0f; // first frame settles
+
+			ImGui::PushID(Base);
+			ImGui::BeginGroup(); // row occupies space as a whole
+			Begun = true;
+		}
+
+		~HorizontalMidGroup()
+		{
+			if (Begun)
+				End();
+		}
+
+		void End()
+		{
+			ImGui::EndGroup();
+			ImGui::PopID();
+			Begun = false;
+
+			if (MeasuredRowH > 0.0f)
+				AlignSetVec2(St, Base, kRowH, ImVec2(0.0f, MeasuredRowH));
+		}
+
+		template <class WidgetFn>
+		HorizontalMidGroup& DrawWidget(const char* item_tag, WidgetFn&& fn)
+		{
+			// Per-item cached size
+			const ImVec2 cached = AlignGetVec2(St, Base, item_tag, ImVec2(0, 0));
+
+			// Y offset computed from cached row height and cached item height
+			const float y_off = (CachedRowH > 0.0f) ? (CachedRowH - cached.y) * 0.5f : 0.0f;
+
+			// Place explicitly inside the row group (avoid SameLine)
+			ImGui::SetCursorPos(ImVec2(StartCursor.x + X, StartCursor.y + y_off));
+
+			ImGui::PushID(item_tag);
+			ImGui::BeginGroup();
+			fn();
+			ImGui::EndGroup();
+			ImGui::PopID();
+
+			const ImVec2 measured = ImGui::GetItemRectSize();
+
+			// Update caches for next frame
+			AlignSetVec2(St, Base, item_tag, measured);
+
+			// Track row max height for next frame
+			if (measured.y > MeasuredRowH)
+				MeasuredRowH = measured.y;
+
+			// Advance X for next widget
+			X += measured.x + SpacingX;
+
+			return *this;
+		}
+	};
 }

@@ -186,5 +186,89 @@ namespace ImGui
 		store.SetVec2("cal_group_size", ImGui::GetItemRectSize());
 	}
 
+	struct HorizontalMidGroup
+	{
+		ImGuiID        Base = 0;
+		ImGui::WindowStore Store = ImGui::WindowStore(nullptr, 0);
+
+		ImVec2 StartCursor{};
+		float  SpacingX = 0.0f;
+
+		float  CachedRowH = 0.0f;
+		float  MeasuredRowH = 0.0f;
+		float  X = 0.0f;
+
+		bool   Begun = false;
+		static constexpr const char* kRowH = "hmg_row_h";
+
+		explicit HorizontalMidGroup(const char* row_id)
+			: Base(ImGui::GetID(row_id))
+			, Store(ImGui::GetWindowStore(Base))
+		{
+			StartCursor = ImGui::GetCursorPos();
+			SpacingX = ImGui::GetStyle().ItemSpacing.x;
+
+			CachedRowH = Store.GetFloat(kRowH, 0.0f);
+
+			ImGui::PushID(Base);
+			ImGui::BeginGroup(); // whole row is a group (so it occupies space properly)
+			Begun = true;
+		}
+
+		~HorizontalMidGroup()
+		{
+			if (Begun)
+				End();
+		}
+
+		void End()
+		{
+			// Close the row group and commit cache.
+			ImGui::EndGroup();
+			ImGui::PopID();
+			Begun = false;
+
+			// Store row max height for next frame (avoid storing 0 if nothing drawn).
+			if (MeasuredRowH > 0.0f)
+				Store.SetFloat(kRowH, MeasuredRowH);
+		}
+
+		template <class WidgetFn>
+		HorizontalMidGroup& DrawWidget(const char* item_tag, WidgetFn&& fn)
+		{
+			// Per-item cache tag
+			// (we keep it simple: item_tag -> Vec2 size)
+			const char* size_tag = item_tag; // use item_tag directly for Vec2 cache
+
+			const ImVec2 cached = Store.GetVec2(size_tag, ImVec2(0, 0));
+
+			// Compute Y offset using cached row height (1-frame delay).
+			// If cache is empty (0), offset will be 0 (first frame "settles").
+			const float y_off = (CachedRowH > 0.0f) ? (CachedRowH - cached.y) * 0.5f : 0.0f;
+
+			// Position inside the row group explicitly
+			ImGui::SetCursorPos(ImVec2(StartCursor.x + X, StartCursor.y + y_off));
+
+			ImGui::PushID(item_tag);
+			ImGui::BeginGroup();
+			fn();
+			ImGui::EndGroup();
+			ImGui::PopID();
+
+			const ImVec2 measured = ImGui::GetItemRectSize();
+
+			// Update caches for next frame
+			Store.SetVec2(size_tag, measured);
+
+			// Track true row height for next frame
+			if (measured.y > MeasuredRowH)
+				MeasuredRowH = measured.y;
+
+			// Advance X for next widget
+			X += measured.x + SpacingX;
+
+			return *this;
+		}
+	};
 
 }

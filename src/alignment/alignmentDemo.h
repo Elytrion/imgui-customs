@@ -1,5 +1,5 @@
 #pragma once
-#include "imguiAlignment.h"
+#include "imguiAlignment_noStore.h"
 #include "demo_module.h"
 
 class AlignmentDemo : public DemoModule
@@ -47,10 +47,12 @@ inline void AlignmentDemo::DrawSelectedDemo()
 
 	ImGui::Spacing();
 
-	ImGui::AlignmentGroup("btmAligned", AlignX::Center, AlignY::Bottom, []()
-		{
-			ImGui::Text("Bottom Center Aligned Text");
-		});
+	ImGui::HorizontalMidGroup row("horizontalRow");
+
+	row.DrawWidget("##item1", [&]() { ImGui::Button("these buttons", ImVec2(0, 20.0f)); })
+		.DrawWidget("##item2", [&]() { ImGui::Button("are all aligned by their height midpoints", ImVec2(0,40.0f)); })
+		.DrawWidget("##item3", [&]() { ImGui::Button("in a horizontal row", ImVec2(0, 30.0f)); })
+		.End();
 }
 
 inline void AlignmentDemo::OnPrePanel()
