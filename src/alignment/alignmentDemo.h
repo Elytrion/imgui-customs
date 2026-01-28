@@ -46,6 +46,11 @@ inline void AlignmentDemo::DrawSelectedDemo()
 		});
 
 	ImGui::Spacing();
+
+	ImGui::AlignmentGroup("btmAligned", AlignX::Center, AlignY::Bottom, []()
+		{
+			ImGui::Text("Bottom Center Aligned Text");
+		});
 }
 
 inline void AlignmentDemo::OnPrePanel()
@@ -94,10 +99,8 @@ inline void AlignmentDemo::DrawDemoPanel()
 		ImGui::AlignmentGroup("BottomCenterGroup", AlignX::Center, AlignY::Bottom, [&]() { ImGui::Button("o", btnSize); }, mOffsets[7]);
 		ImGui::SameLine();
 		ImGui::AlignmentGroup("BottomRightGroup", AlignX::Right, AlignY::Bottom, [&]() { ImGui::Button("o", btnSize); }, mOffsets[8]);
-
-
-		ImGui::EndChild();
 	}
+	ImGui::EndChild();
 	if (mRemovedWindowPadding)
 	{
 		ImGui::PopStyleVar();
