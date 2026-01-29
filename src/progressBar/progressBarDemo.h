@@ -104,6 +104,7 @@ void ProgressBarDemo::DrawDemoPanel()
         // Live widget
         ImGui::TextUnformatted("Preview");
         ImGui::SameLine(220.0f);
+		const float cursorX = ImGui::GetCursorPosX();
         ImGui::SetNextItemWidth(-1.0f); // fill remaining width nicely
         ImGui::BufferingBar(label_buf, progress, inProgress, cfg);
 

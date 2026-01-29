@@ -41,8 +41,8 @@ namespace ImGui
         if (size.x <= 0.0f) size.x = GetContentRegionAvail().x;
         if (size.y <= 0.0f) size.y = GetFrameHeight();
 
-        // Keep original layout behavior (shrink width by paddings, like your code)
-        size.x -= style.FramePadding.x * 2.0f;
+        //// Keep original layout behavior (shrink width by paddings, like your code)
+        //size.x -= style.FramePadding.x * 2.0f;
 
         const ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
         ItemSize(bb, style.FramePadding.y);
