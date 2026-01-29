@@ -234,8 +234,10 @@ namespace ImGui
 		}
 
 		template <class WidgetFn>
-		HorizontalMidGroup& DrawWidget(const char* item_tag, WidgetFn&& fn)
+		HorizontalMidGroup& DrawWidget(const char* item_tag, WidgetFn&& fn, float width_offset = 0.0f)
 		{
+			// Advance X by any specified width offset
+			X += width_offset;
 			// Per-item cache tag
 			// (we keep it simple: item_tag -> Vec2 size)
 			const char* size_tag = item_tag; // use item_tag directly for Vec2 cache

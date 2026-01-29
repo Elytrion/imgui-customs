@@ -280,11 +280,12 @@ namespace ImGui
 		}
 
 		template <class WidgetFn>
-		HorizontalMidGroup& DrawWidget(const char* item_tag, WidgetFn&& fn)
+		HorizontalMidGroup& DrawWidget(const char* item_tag, WidgetFn&& fn, float width_offset = 0.0f)
 		{
+			// Advance X by any specified width offset
+			X += width_offset;
 			// Per-item cached size
 			const ImVec2 cached = AlignGetVec2(St, Base, item_tag, ImVec2(0, 0));
-
 			// Y offset computed from cached row height and cached item height
 			const float y_off = (CachedRowH > 0.0f) ? (CachedRowH - cached.y) * 0.5f : 0.0f;
 
