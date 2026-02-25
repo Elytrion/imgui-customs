@@ -14,17 +14,6 @@ namespace ImGui
             : Storage(storage), BaseKey(base_key) {
         }
 
-        // Create a derived key under BaseKey scope from an arbitrary tag.
-        ImGuiID Key(const char* tag) const
-        {
-            // Make the derived key depend on both BaseKey and tag.
-            // PushID(base) ensures uniqueness even if tag is reused elsewhere.
-            ImGui::PushID(BaseKey);
-            ImGuiID k = ImGui::GetID(tag);
-            ImGui::PopID();
-            return k;
-        }
-
         bool Has(const char* tag) const { return Storage->GetBool(ValidTag(tag), false); }
         void SetValid(const char* tag, bool v = true) const { Storage->SetBool(ValidTag(tag), v); }
 
@@ -36,7 +25,7 @@ namespace ImGui
         void SetInt(const char* tag, int   v) const { Storage->SetInt(Key(tag), v); SetValid(tag); }
         void SetFloat(const char* tag, float v) const { Storage->SetFloat(Key(tag), v); SetValid(tag); }
 
-        void* GetPtr(const char* tag, void* default_value = nullptr) const { return Storage->GetVoidPtr(Key(tag)); }
+        void* GetPtr(const char* tag) const { return Storage->GetVoidPtr(Key(tag)); }
         void  SetPtr(const char* tag, void* v) const { Storage->SetVoidPtr(Key(tag), v); SetValid(tag); }
 
         ImVec2 GetVec2(const char* tag, const ImVec2& def = ImVec2(0, 0)) const
@@ -81,15 +70,19 @@ namespace ImGui
         }
 
     private:
+        ImGuiID Key(const char* tag) const
+        {
+            IM_ASSERT(Storage != nullptr);
+            IM_ASSERT(tag != nullptr);
+            // Pure hash: does not depend on CurrentWindow or ID stack
+            return ImHashStr(tag, 0, BaseKey);
+        }
+
         ImGuiID ValidTag(const char* tag) const
         {
-            ImGui::PushID(BaseKey);
-            ImGuiID k = ImGui::GetID(tag);      
-            ImGui::PushID(k);                   
-            ImGuiID ks = ImGui::GetID("##validtagsalt"); // scoped id
-            ImGui::PopID();
-            ImGui::PopID();
-            return ks;
+            // Also pure, and derived from the same stable key.
+            const ImGuiID k = Key(tag);
+            return ImHashStr("##validtagsalt", 0, k);
         }
 
         ImGuiID KeyWithSuffix(const char* tag, const char* suffix) const
