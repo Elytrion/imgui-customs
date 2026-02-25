@@ -1,5 +1,5 @@
 #pragma once
-#include "imguiAlignment_noStore.h"
+#include "imguiAlignment.h"
 #include "demo_module.h"
 
 class AlignmentDemo : public DemoModule
