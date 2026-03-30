@@ -13,6 +13,7 @@
 #include "alignment/alignmentDemo.h"
 #include "tooltip/customTooltipDemo.h"
 #include "windowStore/windowStoreDemo.h"
+#include "groupHierarchy/grpHierarchyDemo.h"
 
 void DemoManager::InitModules()
 {
@@ -30,4 +31,5 @@ void DemoManager::InitModules()
 	RegisterDemoModule(std::make_shared<AlignmentDemo>());
 	RegisterDemoModule(std::make_shared<CustomTooltipDemo>());
 	RegisterDemoModule(std::make_shared<WindowStoreDemo>());
+	RegisterDemoModule(std::make_shared<GrpHierarchyDemo>());
 }
