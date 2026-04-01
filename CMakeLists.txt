@@ -66,11 +66,40 @@ if (NOT imgui_POPULATED)
   target_link_libraries(imgui PUBLIC glfw)
 endif()
 
+# ---- Fetch libzip ----
+FetchContent_Declare(
+  libzip
+  GIT_REPOSITORY https://github.com/nih-at/libzip.git
+  GIT_TAG        v1.10.1
+)
+
+# Disable optional features (keep it simple)
+set(ENABLE_COMMONCRYPTO OFF CACHE BOOL "" FORCE)
+set(ENABLE_GNUTLS OFF CACHE BOOL "" FORCE)
+set(ENABLE_MBEDTLS OFF CACHE BOOL "" FORCE)
+set(ENABLE_OPENSSL OFF CACHE BOOL "" FORCE)
+set(ENABLE_BZIP2 OFF CACHE BOOL "" FORCE)
+set(ENABLE_LZMA OFF CACHE BOOL "" FORCE)
+set(ENABLE_ZSTD OFF CACHE BOOL "" FORCE)
+set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(BUILD_REGRESS OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LIBZIP_DO_INSTALL OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(libzip)
+
 # ---- GLAD (vendored; no FetchContent) ----
 add_library(glad STATIC
   external/glad/src/glad.c
 )
 target_include_directories(glad PUBLIC external/glad/include)
+
+# ---- pugixml (vendored) ----
+add_library(pugixml STATIC
+  external/pugixml/pugixml.cpp
+)
+
+target_include_directories(pugixml PUBLIC external/pugixml)
 
 # ---- App target ----
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
@@ -95,6 +124,8 @@ if (MSVC)
   set_target_properties(imgui PROPERTIES FOLDER "3rdparty")
   set_target_properties(glad  PROPERTIES FOLDER "3rdparty")
   set_target_properties(glfw  PROPERTIES FOLDER "3rdparty")
+  set_target_properties(pugixml PROPERTIES FOLDER "3rdparty")
+  set_target_properties(zip PROPERTIES FOLDER "3rdparty")
 endif()
 
 target_link_libraries(imgui_customs PRIVATE
@@ -102,6 +133,8 @@ target_link_libraries(imgui_customs PRIVATE
   glfw
   glad
   glm::glm
+  pugixml
+  zip
 )
 
 # Windows: link necessary system libs
