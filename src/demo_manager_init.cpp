@@ -13,11 +13,13 @@
 #include "alignment/alignmentDemo.h"
 #include "tooltip/customTooltipDemo.h"
 #include "windowStore/windowStoreDemo.h"
+#include "bcf-lib/bcfDemo.h"
 
 void DemoManager::InitModules()
 {
 	// Modules will be displayed in the order they are registered here
 	RegisterDemoModule(std::make_shared<HelpModule>());
+	RegisterDemoModule(std::make_shared<BCFDemo>());
 	RegisterDemoModule(std::make_shared<DockEnforcerDemo>());
 	RegisterDemoModule(std::make_shared<SpinnerDemo>());
 	RegisterDemoModule(std::make_shared<LocalModalDemo>());
