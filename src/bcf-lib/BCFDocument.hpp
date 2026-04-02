@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 
-// we store internall as BCF-XML v3.0
+// we store internally as BCF-XML v3.0
 // https://github.com/buildingSMART/BCF-XML/tree/release_3_0/Documentation
 
 using optStr = std::optional<std::string>;
