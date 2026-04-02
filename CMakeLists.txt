@@ -139,7 +139,7 @@ target_link_libraries(imgui_customs PRIVATE
 
 # Windows: link necessary system libs
 if (WIN32)
-  target_link_libraries(imgui_customs PRIVATE opengl32)
+  target_link_libraries(imgui_customs PRIVATE opengl32 Rpcrt4)
 endif()
 
 # Enable high-DPI awareness on Windows (optional but nice)
