@@ -88,6 +88,20 @@ set(LIBZIP_DO_INSTALL OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(libzip)
 
+# ---- Fetch Xerces-C ----
+FetchContent_Declare(
+  xercesc
+  GIT_REPOSITORY https://github.com/apache/xerces-c.git
+  GIT_TAG        xerces-3.3
+)
+
+FetchContent_MakeAvailable(xercesc)
+
+target_include_directories(xerces-c
+  PUBLIC
+    $<BUILD_INTERFACE:${xercesc_SOURCE_DIR}/src>
+)
+
 # ---- GLAD (vendored; no FetchContent) ----
 add_library(glad STATIC
   external/glad/src/glad.c
@@ -126,6 +140,7 @@ if (MSVC)
   set_target_properties(glfw  PROPERTIES FOLDER "3rdparty")
   set_target_properties(pugixml PROPERTIES FOLDER "3rdparty")
   set_target_properties(zip PROPERTIES FOLDER "3rdparty")
+  set_target_properties(xerces-c PROPERTIES FOLDER "3rdparty")
 endif()
 
 target_link_libraries(imgui_customs PRIVATE
@@ -135,6 +150,7 @@ target_link_libraries(imgui_customs PRIVATE
   glm::glm
   pugixml
   zip
+  xerces-c
 )
 
 # Windows: link necessary system libs
