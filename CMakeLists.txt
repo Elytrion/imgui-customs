@@ -56,10 +56,12 @@ if (NOT imgui_POPULATED)
     $<$<BOOL:${IMGUI_ENABLE_DEMO}>:${imgui_SOURCE_DIR}/imgui_demo.cpp>
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp 
   )
   target_include_directories(imgui PUBLIC
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
+    ${imgui_SOURCE_DIR}/misc
   )
   # Tell backend we use GLAD as loader (so it includes <glad/glad.h>)
   target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)

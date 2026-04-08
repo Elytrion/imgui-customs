@@ -1,5 +1,6 @@
 #pragma once
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include "demo_module.h"
 #include <string>
 #include <vector>
@@ -18,20 +19,17 @@ protected:
 	void DrawDemoPanel() override;
 
 private:
-	bool ImportTestXml();
-	bool ExportAndZipTestXml();
+	bool ImportTestXML();
+	bool ImportTestXSD();
 
 private:
-	std::string m_Status = "Idle";
-	std::string m_LastError;
-	std::string m_InputPath = "C:/Users/Admin/Desktop/TESTING DATA FOLDER/test_input.xml";
-	std::string m_OutputXmlPath = "C:/Users/Admin/Desktop/TESTING DATA FOLDER/exported_test.xml";
-	std::string m_OutputZipPath = "C:/Users/Admin/Desktop/TESTING DATA FOLDER/exported_test.zip";
+	std::string m_xmlInputPath = "";
+	std::string m_xsdInputPath = "";
+	bool useHeaderXSD = false;
 
-	std::string m_RootName;
-	std::string m_Title;
-	std::string m_Message;
-	std::vector<std::string> m_Items;
+	std::string m_loadedXSDText;
+	std::string m_status = "Idle";
+	std::string m_lastError;
 };
 
 inline void BCFDemo::OnPreSelectable()
@@ -43,22 +41,22 @@ inline void BCFDemo::OnPreSelectable()
 
 inline void BCFDemo::DrawSelectedDemo()
 {
-	if (ImGui::Button("Import XML"))
+	ImGui::InputText("XSD File Path", &m_xsdInputPath);
+
+	if (ImGui::Button("Import XSD"))
 	{
-		if (ImportTestXml())
-			m_Status = "Import succeeded";
-		else
-			m_Status = "Import failed";
+		ImportTestXSD();
 	}
 
-	ImGui::SameLine();
+	ImGui::Checkbox("Use Header XSD", &useHeaderXSD);
 
-	if (ImGui::Button("Export & ZIP XML"))
+	ImGui::Separator();
+
+	ImGui::InputText("XML File Path", &m_xmlInputPath);
+
+	if (ImGui::Button("Import XML"))
 	{
-		if (ExportAndZipTestXml())
-			m_Status = "Export + ZIP succeeded";
-		else
-			m_Status = "Export + ZIP failed";
+		ImportTestXML();
 	}
 }
 
@@ -74,28 +72,15 @@ inline void BCFDemo::OnPrePanel()
 
 inline void BCFDemo::DrawDemoPanel()
 {
-	ImGui::Text("Status: %s", m_Status.c_str());
+	ImGui::Text("Status: %s", m_status.c_str());
 
-	if (!m_LastError.empty())
+	if (!m_lastError.empty())
 	{
-		ImGui::TextWrapped("Last error: %s", m_LastError.c_str());
+		ImGui::Separator();
+		ImGui::TextWrapped("Last Error: %s", m_lastError.c_str());
 	}
 
 	ImGui::Separator();
-	ImGui::Text("Input XML: %s", m_InputPath.c_str());
-	ImGui::Text("Output XML: %s", m_OutputXmlPath.c_str());
-	ImGui::Text("Output ZIP: %s", m_OutputZipPath.c_str());
-
-	ImGui::Separator();
-	ImGui::Text("Parsed XML");
-
-	ImGui::Text("Root: %s", m_RootName.c_str());
-	ImGui::Text("Title: %s", m_Title.c_str());
-	ImGui::TextWrapped("Message: %s", m_Message.c_str());
-
-	ImGui::Text("Items:");
-	for (const std::string& item : m_Items)
-	{
-		ImGui::BulletText("%s", item.c_str());
-	}
+	ImGui::TextWrapped("Loaded XSD chars: %d", static_cast<int>(m_loadedXSDText.size()));
+	ImGui::TextWrapped("Using header XSD: %s", useHeaderXSD ? "true" : "false");
 }

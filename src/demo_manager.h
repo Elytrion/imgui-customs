@@ -6,7 +6,7 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <GLFW/glfw3.h>
 #include "demo_module.h"
-#include <xercesc/util/PlatformUtils.hpp>
+#include "bcf-lib/xmllib/XMLMain.hpp"
 
 
 class DemoManager
@@ -23,7 +23,7 @@ public:
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init("#version 460");
 		
-		xercesc::XMLPlatformUtils::Initialize();
+		XMLLib::InitXMLLib();
 
 		InitModules();
 	}
@@ -52,7 +52,7 @@ public:
 
 	static void Cleanup()
 	{
-		xercesc::XMLPlatformUtils::Terminate();
+		XMLLib::ReleaseXMLLib();
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();

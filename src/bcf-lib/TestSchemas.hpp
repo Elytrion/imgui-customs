@@ -1,0 +1,18 @@
+#pragma once
+#include <string>
+
+namespace XMLLib
+{
+    inline const std::string TEST_NOTE_XSD = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="note">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="title" type="xs:string"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
+)xml";
+}
