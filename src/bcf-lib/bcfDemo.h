@@ -21,11 +21,14 @@ protected:
 private:
 	bool ImportTestXML();
 	bool ImportTestXSD();
+	void DisplayXMLImported();
 
 private:
 	std::string m_xmlInputPath = "";
 	std::string m_xsdInputPath = "";
 	bool useHeaderXSD = false;
+
+	std::string m_xmlRawText = "";
 
 	std::string m_loadedXSDText;
 	std::string m_status = "Idle";
@@ -83,4 +86,6 @@ inline void BCFDemo::DrawDemoPanel()
 	ImGui::Separator();
 	ImGui::TextWrapped("Loaded XSD chars: %d", static_cast<int>(m_loadedXSDText.size()));
 	ImGui::TextWrapped("Using header XSD: %s", useHeaderXSD ? "true" : "false");
+
+	DisplayXMLImported();
 }

@@ -82,5 +82,25 @@ bool BCFDemo::ImportTestXML()
 	}
 
 	m_status = "Import XML succeeded";
+
+	m_xmlRawText = doc.toString();
+
 	return true;
+}
+
+void BCFDemo::DisplayXMLImported()
+{
+	if (m_xmlRawText.empty())
+		return;
+
+	ImGui::Separator();
+	ImGui::Text("Imported XML");
+
+	ImGuiInputTextFlags flags = ImGuiInputTextFlags_ReadOnly;
+	ImGui::InputTextMultiline(
+		"##ImportedXML",
+		&m_xmlRawText,
+		ImVec2(-FLT_MIN, 300.0f),
+		flags
+	);
 }

@@ -18,6 +18,9 @@ public:
 
     bool IsValid() const;
     const std::string& GetLastError() const;
+
+    std::string toString() const;
+
 private:
     class ImplXDH;
     std::unique_ptr<ImplXDH> m_ImplXDH; // used to hide xerces headers

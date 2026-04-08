@@ -1,5 +1,9 @@
 #include "XMLDocumentHandle.h"
 #include <xercesc/dom/DOM.hpp>
+#include <xercesc/framework/LocalFileFormatTarget.hpp>
+#include <xercesc/framework/MemBufFormatTarget.hpp>
+
+using namespace xercesc;
 
 namespace XMLLib
 {
@@ -7,7 +11,7 @@ namespace XMLLib
 class XMLDocumentHandle::ImplXDH
 {
 public:
-    xercesc::DOMDocument* document = nullptr;
+    DOMDocument* document = nullptr;
     std::string lastError;
     ImplXDH() = default;
     ~ImplXDH()
@@ -54,7 +58,7 @@ const std::string& XMLDocumentHandle::GetLastError() const
 
 void XMLDocumentHandle::adoptDocument(void* doc)
 {
-    xercesc::DOMDocument* domDoc = static_cast<xercesc::DOMDocument*>(doc);
+    DOMDocument* domDoc = static_cast<DOMDocument*>(doc);
     if (!m_ImplXDH)
         m_ImplXDH = std::make_unique<ImplXDH>();
 
@@ -71,6 +75,40 @@ void XMLDocumentHandle::setError(const std::string& err)
         m_ImplXDH = std::make_unique<ImplXDH>();
 
     m_ImplXDH->lastError = err;
+}
+
+std::string XMLDocumentHandle::toString() const
+{
+    if (!m_ImplXDH || !m_ImplXDH->document)
+        return "";
+
+    DOMImplementation* impl = DOMImplementationRegistry::getDOMImplementation(XMLString::transcode("LS"));
+    if (!impl)
+        return "";
+
+    DOMLSSerializer* serializer = ((DOMImplementationLS*)impl)->createLSSerializer();
+
+    // Pretty print (optional but nice)
+    DOMConfiguration* config = serializer->getDomConfig();
+    if (config->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true))
+        config->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true);
+
+    MemBufFormatTarget target;
+    DOMLSOutput* output = ((DOMImplementationLS*)impl)->createLSOutput();
+
+    output->setByteStream(&target);
+
+    serializer->write(m_ImplXDH->document, output);
+
+    std::string result(
+        reinterpret_cast<const char*>(target.getRawBuffer()),
+        target.getLen()
+    );
+
+    output->release();
+    serializer->release();
+
+    return result;
 }
 
 }
