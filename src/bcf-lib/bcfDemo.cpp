@@ -71,8 +71,11 @@ bool BCFDemo::ImportTestXML()
 	{
 		schema.schemaFilePath = m_xsdInputPath;
 	}
-
-	XMLDocumentHandle doc = XMLParser::Parse(m_xmlInputPath, schema);
+	XMLDocumentHandle doc;
+	if (schema.isValid())
+		doc = XMLParser::Parse(m_xmlInputPath, schema);
+	else
+		doc = XMLParser::Parse(m_xmlInputPath);
 
 	if (!doc.IsValid())
 	{
@@ -83,7 +86,7 @@ bool BCFDemo::ImportTestXML()
 
 	m_status = "Import XML succeeded";
 
-	m_xmlRawText = doc.toString();
+	m_xmlRawText = doc.ToString();
 
 	return true;
 }

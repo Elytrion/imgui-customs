@@ -13,25 +13,15 @@
 #include <xercesc/framework/MemBufInputSource.hpp>
 #include <xercesc/dom/DOM.hpp>
 
+#include "XMLUtils.hpp"
+
 namespace XMLLib
 {
 using namespace xercesc;
 
 namespace
 {
-    static std::string XmlChToString(const XMLCh* text)
-    {
-        if (!text)
-            return {};
 
-        char* temp = XMLString::transcode(text);
-        if (!temp)
-            return {};
-
-        std::string out(temp);
-        XMLString::release(&temp);
-        return out;
-    }
 
     class SimpleErrorHandler : public ErrorHandler
     {
