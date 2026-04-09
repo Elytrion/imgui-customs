@@ -4,6 +4,7 @@
 #include "demo_module.h"
 #include <string>
 #include <vector>
+#include "xmllib/XMLDocumentHandle.h"
 
 class BCFDemo : public DemoModule
 {
@@ -22,6 +23,7 @@ private:
 	bool ImportTestXML();
 	bool ImportTestXSD();
 	void DisplayXMLImported();
+	void DrawXMLNodeTree(const XMLLib::XMLNodeHandle& root);
 
 private:
 	std::string m_xmlInputPath = "";
@@ -33,6 +35,8 @@ private:
 	std::string m_loadedXSDText;
 	std::string m_status = "Idle";
 	std::string m_lastError;
+
+	XMLLib::XMLDocumentHandle m_parsedDocument;
 };
 
 inline void BCFDemo::OnPreSelectable()

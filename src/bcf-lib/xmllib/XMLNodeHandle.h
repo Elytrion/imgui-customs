@@ -14,6 +14,13 @@ namespace XMLLib
         Comment,
         CData
     };
+
+    struct XMLAttribute
+    {
+        std::string name;
+        std::string value;
+    };
+
     // XMLNodeHandle is just a reference to the nodes in the original XMLDocument implemented DOMDocument ptr
     // As such, it is non-owning and copyable and movable, but copies will simply access the same node
     // If the base XMLDocument is deleted the nodes will become invalidated and SHOULD NOT BE USED
@@ -45,9 +52,12 @@ namespace XMLLib
         bool SetAttribute(const std::string& name, const std::string& value);
         bool RemoveAttribute(const std::string& name);
 
+        std::vector<XMLAttribute> GetAttributes() const;
+
         XMLNodeHandle AppendChildElement(const std::string& name);
         bool AppendChild(const XMLNodeHandle& child);
 
+        const void* GetRawNode() const { return m_Node; }
     private:
         void* m_Node = nullptr;
 

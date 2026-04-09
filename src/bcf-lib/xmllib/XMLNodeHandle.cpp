@@ -188,6 +188,36 @@ namespace XMLLib
         return elem->hasAttribute(xmlName.get());
     }
 
+    std::vector<XMLAttribute> XMLNodeHandle::GetAttributes() const
+    {
+        std::vector<XMLAttribute> out;
+
+        DOMElement* elem = AsElement(ToNode(m_Node));
+        if (!elem)
+            return out;
+
+        DOMNamedNodeMap* attrs = elem->getAttributes();
+        if (!attrs)
+            return out;
+
+        const XMLSize_t count = attrs->getLength();
+        out.reserve(static_cast<size_t>(count));
+
+        for (XMLSize_t i = 0; i < count; ++i)
+        {
+            DOMNode* attr = attrs->item(i);
+            if (!attr)
+                continue;
+
+            XMLAttribute a;
+            a.name = XmlChToString(attr->getNodeName());
+            a.value = XmlChToString(attr->getNodeValue());
+            out.push_back(std::move(a));
+        }
+
+        return out;
+    }
+
     std::string XMLNodeHandle::GetAttribute(const std::string& name) const
     {
         const DOMElement* elem = AsElement(ToNode(m_Node));
