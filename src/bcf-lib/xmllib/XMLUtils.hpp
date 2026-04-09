@@ -3,6 +3,7 @@
 
 namespace XMLLib
 {
+// ease of access class to free transcoded text
 class XMLChGuard
 {
 public:
