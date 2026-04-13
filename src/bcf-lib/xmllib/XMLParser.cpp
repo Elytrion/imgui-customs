@@ -21,7 +21,7 @@ using namespace xercesc;
 
 namespace
 {
-    // xerces error handler
+    // custom error handler
     class SimpleErrorHandler : public ErrorHandler
     {
     public:
@@ -53,13 +53,15 @@ namespace
     private:
         std::string m_Error;
     };
-    // custom resolver to intercept header only schemas
+
+    // custom resolver to catch header-only schemas and raw text xml
     class MemorySchemaResolver : public EntityResolver
     {
     public:
         MemorySchemaResolver(const std::string& systemId, const std::string& rawText)
             : m_SystemId(systemId), m_RawText(rawText)
-        {}
+        {
+        }
 
         InputSource* resolveEntity(const XMLCh* const publicId, const XMLCh* const systemId) override
         {
@@ -73,7 +75,7 @@ namespace
                     reinterpret_cast<const XMLByte*>(m_RawText.data()),
                     static_cast<XMLSize_t>(m_RawText.size()),
                     m_SystemId.c_str(),
-                    false // prevent system from releasing the rawtext memory and creating a mem leak
+                    false
                 );
             }
 
@@ -81,12 +83,55 @@ namespace
         }
 
     private:
-        std::string m_SystemId; // identifier
-        std::string m_RawText;  // actual XSD text
+        std::string m_SystemId;
+        std::string m_RawText;
     };
+
+    bool ConfigureParser(
+        XercesDOMParser& parser,
+        SimpleErrorHandler& errorHandler,
+        MemorySchemaResolver& resolver,
+        const XMLSchema& schema,
+        const XMLParseConfig& config)
+    {
+        parser.setValidationConstraintFatal(config.validationConstraintFatal);
+        parser.setValidationSchemaFullChecking(config.validationSchemaFullChecking);
+        parser.setCreateEntityReferenceNodes(config.createEntityReferenceNodes);
+        parser.setLoadExternalDTD(false);
+        parser.setErrorHandler(&errorHandler);
+
+        const bool useSchemaFile = !schema.schemaFilePath.empty();
+        const bool useRawSchema = !useSchemaFile && !schema.rawText.empty();
+        const bool useSchema = useSchemaFile || useRawSchema;
+
+        parser.setDoNamespaces(useSchema ? true : config.doNamespaces);
+
+        if (useSchema)
+        {
+            parser.setValidationScheme(XercesDOMParser::Val_Always);
+            parser.setDoSchema(true);
+
+            if (useSchemaFile)
+            {
+                parser.setExternalNoNamespaceSchemaLocation(schema.schemaFilePath.c_str());
+            }
+            else
+            {
+                parser.setExternalNoNamespaceSchemaLocation(schema.systemId.c_str());
+                parser.setEntityResolver(&resolver);
+            }
+        }
+        else
+        {
+            parser.setValidationScheme(XercesDOMParser::Val_Never);
+            parser.setDoSchema(false);
+        }
+
+        return true;
+    }
 }
 
-XMLDocumentHandle XMLParser::Parse(const std::string & xmlFilePath, const XMLSchema & schema, const XMLParseConfig & config)
+XMLDocumentHandle XMLParser::Parse(const std::string& xmlFilePath, const XMLSchema& schema, const XMLParseConfig& config)
 {
     XMLDocumentHandle result;
 
@@ -100,45 +145,9 @@ XMLDocumentHandle XMLParser::Parse(const std::string & xmlFilePath, const XMLSch
     {
         XercesDOMParser parser;
         SimpleErrorHandler errorHandler;
+        MemorySchemaResolver resolver(schema.systemId, schema.rawText);
 
-        parser.setValidationConstraintFatal(config.validationConstraintFatal);
-        parser.setValidationSchemaFullChecking(config.validationSchemaFullChecking);
-        parser.setCreateEntityReferenceNodes(config.createEntityReferenceNodes);
-        parser.setLoadExternalDTD(false);
-        parser.setErrorHandler(&errorHandler);
-
-        const bool useSchemaFile = !schema.schemaFilePath.empty();
-        const bool useRawSchema = !useSchemaFile && !schema.rawText.empty();
-        const bool useSchema = useSchemaFile || useRawSchema;
-        parser.setDoNamespaces(useSchema ? true : config.doNamespaces);
-
-        MemorySchemaResolver resolver(
-            schema.systemId, schema.rawText
-        );
-
-        if (useSchemaFile || useRawSchema)
-        {
-            parser.setValidationScheme(XercesDOMParser::Val_Always);
-            parser.setDoSchema(true);
-
-            if (useSchemaFile)
-            {
-                // pull it from the file path
-                parser.setExternalNoNamespaceSchemaLocation(schema.schemaFilePath.c_str());
-            }
-            else
-            {
-                const char* systemId = schema.systemId.c_str();
-                parser.setExternalNoNamespaceSchemaLocation(systemId);
-                parser.setEntityResolver(&resolver);
-            }
-        }
-        else
-        {
-            // if no valid schema provided, do not validate
-            parser.setValidationScheme(XercesDOMParser::Val_Never);
-            parser.setDoSchema(false);
-        }
+        ConfigureParser(parser, errorHandler, resolver, schema, config);
 
         parser.parse(xmlFilePath.c_str());
 
@@ -155,8 +164,7 @@ XMLDocumentHandle XMLParser::Parse(const std::string & xmlFilePath, const XMLSch
             return result;
         }
 
-        result.adoptDocument(adoptedDoc); // move document from parser to our holder
-
+        result.adoptDocument(adoptedDoc);
         return result;
     }
     catch (const XMLException& e)
@@ -180,4 +188,70 @@ XMLDocumentHandle XMLParser::Parse(const std::string & xmlFilePath, const XMLSch
         return result;
     }
 }
+
+XMLDocumentHandle XMLParser::ParseMemory(const std::string& xmlFileName, const std::string& xmlText, const XMLSchema& schema, const XMLParseConfig& config)
+{
+    XMLDocumentHandle result;
+
+    if (!IsXMLLibInit())
+    {
+        result.setError("XML Lib not initialised");
+        return result;
+    }
+
+    try
+    {
+        XercesDOMParser parser;
+        SimpleErrorHandler errorHandler;
+        MemorySchemaResolver resolver(schema.systemId, schema.rawText);
+
+        ConfigureParser(parser, errorHandler, resolver, schema, config);
+
+        MemBufInputSource xmlSource(
+            reinterpret_cast<const XMLByte*>(xmlText.data()),
+            static_cast<XMLSize_t>(xmlText.size()),
+            xmlFileName.c_str(),
+            false
+        );
+
+        parser.parse(xmlSource);
+
+        if (!errorHandler.GetError().empty())
+        {
+            result.setError(errorHandler.GetError());
+            return result;
+        }
+
+        DOMDocument* adoptedDoc = parser.adoptDocument();
+        if (!adoptedDoc)
+        {
+            result.setError("Failed to adopt parsed XML document");
+            return result;
+        }
+
+        result.adoptDocument(adoptedDoc);
+        return result;
+    }
+    catch (const XMLException& e)
+    {
+        result.setError("XMLException: " + XmlChToString(e.getMessage()));
+        return result;
+    }
+    catch (const DOMException& e)
+    {
+        result.setError("DOMException: " + XmlChToString(e.msg));
+        return result;
+    }
+    catch (const std::exception& e)
+    {
+        result.setError(std::string("std::exception: ") + e.what());
+        return result;
+    }
+    catch (...)
+    {
+        result.setError("Unknown exception during XML parse");
+        return result;
+    }
+}
+
 }

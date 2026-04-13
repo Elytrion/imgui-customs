@@ -16,13 +16,22 @@ struct XMLParseConfig
 
 struct XMLParser
 {
-    // Parses a given xml file, and validates it against a provided schema using the config settings
+    // Parses a given xml file from filepath, and validates it against a provided schema using the config settings
     // If an empty or invalid schema is provided, no schema validation will be done
     // Well-formedness checks are done no matter if a schema is provided or not
     static XMLDocumentHandle Parse(const std::string& xmlFilePath, const XMLSchema& schema, const XMLParseConfig& config = {});
     static XMLDocumentHandle Parse(const std::string& xmlFilePath, const XMLParseConfig& config = {})
     {
 		return Parse(xmlFilePath, XMLSchema(), config);
+    }
+
+    // Parses raw xml text and validates it against a provided schema using the config settings
+    // If an empty or invalid schema is provided, no schema validation will be done
+    // Well-formedness checks are done no matter if a schema is provided or not
+    static XMLDocumentHandle ParseMemory(const std::string& xmlFileName, const std::string& xmlRawText, const XMLSchema& schema, const XMLParseConfig& config = {});
+    static XMLDocumentHandle ParseMemory(const std::string& xmlFileName, const std::string& xmlRawText, const XMLParseConfig& config = {})
+    {
+        return ParseMemory(xmlFileName, xmlRawText, XMLSchema(), config);
     }
 };
 
