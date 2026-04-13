@@ -24,7 +24,7 @@ XMLLib::XMLDocumentHandle* DocumentRef::Get()
 
 const XMLLib::XMLDocumentHandle* DocumentRef::Get() const
 {
-    return DocumentStore::Resolve(*this);
+    return DocumentStore::ResolveConst(*this);
 }
 
 DocumentRef DocumentStore::Add(XMLLib::XMLDocumentHandle doc)
