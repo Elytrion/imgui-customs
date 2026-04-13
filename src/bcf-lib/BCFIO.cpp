@@ -289,4 +289,7 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 			}
 		}
 	}
+
+	result.valid = true;
+	return result;
 }
