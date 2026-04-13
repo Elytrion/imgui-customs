@@ -3,93 +3,72 @@
 #include "misc/cpp/imgui_stdlib.h"
 #include "demo_module.h"
 #include <string>
-#include <vector>
-#include "xmllib/XMLDocumentHandle.h"
+#include "BCFIO.h"
 
 class BCFDemo : public DemoModule
 {
 public:
-	BCFDemo() : DemoModule("BCF", "BCF Demo Panel") {}
+    BCFDemo() : DemoModule("BCF", "BCF Demo Panel") {}
 
 protected:
-	void OnPreSelectable() override;
-	void DrawSelectedDemo() override;
-	void OnPostSelectable() override;
+    void OnPreSelectable() override;
+    void DrawSelectedDemo() override;
+    void OnPostSelectable() override;
 
-	void OnPrePanel() override;
-	void DrawDemoPanel() override;
-
-private:
-	bool ImportTestXML();
-	bool ImportTestXSD();
-	void DisplayXMLImported();
-	void DrawXMLNodeTree(const XMLLib::XMLNodeHandle& root);
+    void OnPrePanel() override;
+    void DrawDemoPanel() override;
 
 private:
-	std::string m_xmlInputPath = "";
-	std::string m_xsdInputPath = "";
-	bool useHeaderXSD = false;
+    bool ImportTestBCF();
+    void DisplayBCFImported();
+    void DrawXMLNodeTree(const XMLLib::XMLNodeHandle& root);
+    void DrawDocumentRefTree(const char* label, const DocumentRef& ref);
+    void DrawOptionalDocumentRefTree(const char* label, const std::optional<DocumentRef>& ref);
 
-	std::string m_xmlRawText = "";
+private:
+    std::string m_bcfInputPath;
+    std::string m_status = "Idle";
+    std::string m_lastError;
 
-	std::string m_loadedXSDText;
-	std::string m_status = "Idle";
-	std::string m_lastError;
-
-	XMLLib::XMLDocumentHandle m_parsedDocument;
+    BCFDocument m_loadedBCF;
 };
 
 inline void BCFDemo::OnPreSelectable()
 {
-	ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(150, 69, 255, 255));
-	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(169, 89, 255, 255));
-	ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(186, 29, 255, 255));
+    ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(150, 69, 255, 255));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(169, 89, 255, 255));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(186, 29, 255, 255));
 }
 
 inline void BCFDemo::DrawSelectedDemo()
 {
-	ImGui::InputText("XSD File Path", &m_xsdInputPath);
+    ImGui::InputText("BCF File Path", &m_bcfInputPath);
 
-	if (ImGui::Button("Import XSD"))
-	{
-		ImportTestXSD();
-	}
-
-	ImGui::Checkbox("Use Header XSD", &useHeaderXSD);
-
-	ImGui::Separator();
-
-	ImGui::InputText("XML File Path", &m_xmlInputPath);
-
-	if (ImGui::Button("Import XML"))
-	{
-		ImportTestXML();
-	}
+    if (ImGui::Button("Import BCF"))
+    {
+        ImportTestBCF();
+    }
 }
 
 inline void BCFDemo::OnPostSelectable()
 {
-	ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(3);
 }
 
 inline void BCFDemo::OnPrePanel()
 {
-	ImGui::SetNextWindowSize(ImVec2(500, 620), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(500, 620), ImGuiCond_Appearing);
 }
 
 inline void BCFDemo::DrawDemoPanel()
 {
-	ImGui::Text("Status: %s", m_status.c_str());
+    ImGui::Text("Status: %s", m_status.c_str());
 
-	if (!m_lastError.empty())
-	{
-		ImGui::Separator();
-		ImGui::TextWrapped("Last Error: %s", m_lastError.c_str());
-	}
+    if (!m_lastError.empty())
+    {
+        ImGui::Separator();
+        ImGui::TextWrapped("Last Error: %s", m_lastError.c_str());
+    }
 
-	ImGui::Separator();
-	ImGui::TextWrapped("Loaded XSD chars: %d", static_cast<int>(m_loadedXSDText.size()));
-	ImGui::TextWrapped("Using header XSD: %s", useHeaderXSD ? "true" : "false");
-
-	DisplayXMLImported();
+    DisplayBCFImported();
 }

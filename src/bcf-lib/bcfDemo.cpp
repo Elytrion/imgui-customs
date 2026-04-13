@@ -1,124 +1,10 @@
 #include "bcfDemo.h"
-#include "xmllib/XMLParser.h"
-#include "xmllib/XMLSchema.hpp"
-#include "xmllib/XMLMain.hpp"
-#include "TestSchemas.hpp"
-
 #include <filesystem>
-#include <fstream>
-#include <sstream>
 #include <iostream>
+
 
 namespace fs = std::filesystem;
 using namespace XMLLib;
-
-bool BCFDemo::ImportTestXSD()
-{
-	m_lastError.clear();
-
-	if (useHeaderXSD)
-	{
-		m_loadedXSDText = TEST_NOTE_XSD;
-		m_status = "Loaded XSD from header";
-		return true;
-	}
-
-	if (m_xsdInputPath.empty())
-	{
-		m_status = "Import XSD failed";
-		m_lastError = "XSD path is empty";
-		return false;
-	}
-
-	std::ifstream file(m_xsdInputPath, std::ios::binary);
-	if (!file)
-	{
-		m_status = "Import XSD failed";
-		m_lastError = "Failed to open XSD file";
-		return false;
-	}
-
-	std::ostringstream oss;
-	oss << file.rdbuf();
-	m_loadedXSDText = oss.str();
-
-	m_status = "Loaded XSD from file";
-	return true;
-}
-
-bool BCFDemo::ImportTestXML()
-{
-	m_lastError.clear();
-
-	if (m_xmlInputPath.empty())
-	{
-		m_status = "Import XML failed";
-		m_lastError = "XML path is empty";
-		return false;
-	}
-
-	if (!IsXMLLibInit())
-	{
-		InitXMLLib();
-	}
-
-	XMLSchema schema("test_note.xsd");
-
-	if (useHeaderXSD && !m_loadedXSDText.empty())
-	{
-		schema.rawText = useHeaderXSD ? TEST_NOTE_XSD : m_loadedXSDText;
-	}
-	else if (!m_xsdInputPath.empty())
-	{
-		schema.schemaFilePath = m_xsdInputPath;
-	}
-	XMLDocumentHandle doc;
-	if (schema.isValid())
-		doc = XMLParser::Parse(m_xmlInputPath, schema);
-	else
-		doc = XMLParser::Parse(m_xmlInputPath);
-
-	if (!doc.IsValid())
-	{
-		m_status = "Import XML failed";
-		m_lastError = doc.GetLastError();
-		return false;
-	}
-
-	m_status = "Import XML succeeded";
-
-	m_parsedDocument = std::move(doc);
-
-	m_xmlRawText = m_parsedDocument.ToString();
-
-	return true;
-}
-
-void BCFDemo::DisplayXMLImported()
-{
-	if (!m_parsedDocument.IsValid())
-		return;
-
-	ImGui::Separator();
-	ImGui::Text("Imported Raw XML Text");
-
-	ImGuiInputTextFlags flags = ImGuiInputTextFlags_ReadOnly;
-	ImGui::InputTextMultiline(
-		"##ImportedXML",
-		&m_xmlRawText,
-		ImVec2(-FLT_MIN, 100.0f),
-		flags
-	);
-
-	ImGui::Separator();
-	ImGui::Text("XML Tree (From Memory Representation)");
-
-	auto root = m_parsedDocument.GetRootElement(); // or GetDocumentElement()
-	if (root.IsValid())
-	{
-		DrawXMLNodeTree(root);
-	}
-}
 
 static bool IsWhitespaceOnly(const std::string& s)
 {
@@ -221,4 +107,126 @@ void BCFDemo::DrawXMLNodeTree(const XMLLib::XMLNodeHandle& node)
 	}
 
 	ImGui::PopID();
+}
+
+bool BCFDemo::ImportTestBCF()
+{
+    m_lastError.clear();
+    m_loadedBCF = BCFDocument{};
+
+    if (m_bcfInputPath.empty())
+    {
+        m_status = "Import BCF failed";
+        m_lastError = "BCF path is empty";
+        return false;
+    }
+
+    m_loadedBCF = BCFIO::Parse(m_bcfInputPath, m_lastError);
+
+    if (!m_loadedBCF.valid)
+    {
+        m_status = "Import BCF failed";
+        if (m_lastError.empty())
+            m_lastError = "BCF parse failed";
+        return false;
+    }
+
+    m_status = "Import BCF succeeded";
+    return true;
+}
+
+void BCFDemo::DrawDocumentRefTree(const char* label, const DocumentRef& ref)
+{
+    if (!ref.IsValid())
+        return;
+
+    const XMLLib::XMLDocumentHandle* doc = ref.Get();
+    if (!doc || !doc->IsValid())
+        return;
+
+    auto root = doc->GetRootElement();
+    if (!root.IsValid())
+        return;
+
+    if (ImGui::TreeNode(label))
+    {
+        DrawXMLNodeTree(root);
+        ImGui::TreePop();
+    }
+}
+
+void BCFDemo::DrawOptionalDocumentRefTree(const char* label, const std::optional<DocumentRef>& ref)
+{
+    if (!ref.has_value())
+        return;
+
+    DrawDocumentRefTree(label, *ref);
+}
+
+void BCFDemo::DisplayBCFImported()
+{
+    if (!m_loadedBCF.valid)
+        return;
+
+    ImGui::Separator();
+    ImGui::Text("BCF Summary");
+    ImGui::BulletText("Has Documents folder: %s", m_loadedBCF.hasDocumentsFolder ? "true" : "false");
+    ImGui::BulletText("Topic count: %d", static_cast<int>(m_loadedBCF.topics.size()));
+
+    ImGui::Separator();
+    ImGui::Text("Root Documents");
+
+    DrawDocumentRefTree("bcf.version", m_loadedBCF.versionDoc);
+    DrawOptionalDocumentRefTree("project.bcfp", m_loadedBCF.projectDoc);
+    DrawOptionalDocumentRefTree("documents.xml", m_loadedBCF.documentsDoc);
+    DrawOptionalDocumentRefTree("extensions.xml", m_loadedBCF.extensionsDoc);
+
+    ImGui::Separator();
+    ImGui::Text("Topics");
+
+    for (auto& [guid, topic] : m_loadedBCF.topics)
+    {
+        ImGui::PushID(guid.c_str());
+
+        std::string topicLabel = guid;
+        if (!topic.valid)
+            topicLabel += " (invalid)";
+
+        if (ImGui::TreeNode(topicLabel.c_str()))
+        {
+            ImGui::Text("GUID: %s", topic.guid.c_str());
+            ImGui::Text("Valid: %s", topic.valid ? "true" : "false");
+
+            DrawDocumentRefTree("markup.bcf", topic.markupDoc);
+
+            if (!topic.viewpointDoc.empty())
+            {
+                if (ImGui::TreeNode("Viewpoints"))
+                {
+                    for (size_t i = 0; i < topic.viewpointDoc.size(); ++i)
+                    {
+                        std::string label = "viewpoint " + std::to_string(i);
+                        DrawDocumentRefTree(label.c_str(), topic.viewpointDoc[i]);
+                    }
+                    ImGui::TreePop();
+                }
+            }
+
+            if (!topic.snapshotNames.empty())
+            {
+                if (ImGui::TreeNode("Snapshots"))
+                {
+                    for (const auto& name : topic.snapshotNames)
+                    {
+                        ImGui::BulletText("%s", name.c_str());
+                    }
+                    ImGui::TreePop();
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+    }
 }
