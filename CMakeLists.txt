@@ -92,7 +92,7 @@ target_include_directories(glad PUBLIC external/glad/include)
 # ---- Add Minizip ----
 add_library(miniz STATIC external/miniz/zip.c)
 
-target_include_directories(miniz PUBLIC third_party/miniz)
+target_include_directories(miniz PUBLIC external/miniz)
 
 # ---- App target ----
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
