@@ -21,8 +21,7 @@ using namespace xercesc;
 
 namespace
 {
-
-
+    // xerces error handler
     class SimpleErrorHandler : public ErrorHandler
     {
     public:
@@ -54,7 +53,7 @@ namespace
     private:
         std::string m_Error;
     };
-
+    // custom resolver to intercept header only schemas
     class MemorySchemaResolver : public EntityResolver
     {
     public:

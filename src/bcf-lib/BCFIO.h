@@ -5,6 +5,7 @@
 
 struct BCFDocument 
 {
+	bool valid = false;
 	DocumentRef versionDoc;						// .version file, required
 	std::optional<DocumentRef> extensionsDoc;	// .xml file, optional, defines the extensions of a project
 	std::optional<DocumentRef> documentsDoc;	// .xml file, optional, defines any additional documents in a project
@@ -25,6 +26,7 @@ struct BCFIO
 	struct ParseConfig
 	{
 		// TODO
+		bool validateSchema = false;
 	};
-	static BCFDocument Parse(const std::string& xmlFilePath, std::string& errMsg, const ParseConfig& cfg = {});
+	static BCFDocument Parse(const std::string& bcfFilePath, std::string& errMsg, const ParseConfig& cfg = {});
 };
