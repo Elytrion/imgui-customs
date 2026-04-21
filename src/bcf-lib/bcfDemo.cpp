@@ -263,19 +263,6 @@ void BCFDemo::DisplayBCFImported()
 
 void BCFDemo::OnCleanup()
 {
-    if (m_loadedBCF.valid)
-    {
-
-
-        if (!m_loadedBCF.workingPath.empty())
-        {
-            std::error_code ec;
-            fs::remove_all(m_loadedBCF.workingPath, ec);
-            if (ec)
-            {
-                std::cerr << "Failed to remove working directory: " << m_loadedBCF.workingPath << "\nError: " << ec.message() << std::endl;
-			}
-        }
-    }
+	BCFIO::ClearAllWorkingFiles();
     DocumentStore::Clear();
 }

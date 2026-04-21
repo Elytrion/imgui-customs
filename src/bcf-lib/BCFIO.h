@@ -41,4 +41,6 @@ struct BCFIO
 		std::string extToUse = ".bcfzip";		// the default extension should be .bcfzip as per specifications, but the user is allowed to change this to anything they want (for example .zip or .bcf)
 	};
 	static bool Write(const BCFDocument& bcfDoc, const std::string& writePath, std::string& errMsg, const WriteConfig& cfg = {});
+
+	static void ClearAllWorkingFiles();
 };

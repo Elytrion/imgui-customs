@@ -605,7 +605,7 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 			// extract snapshot files
 			return IsSnapshotFile(localName);
 		};
-	const auto rootDir = fs::temp_directory_path() / fs::path(bcfPath.stem());
+	const auto rootDir = fs::temp_directory_path() / "BCFIO" / fs::path(bcfPath.stem());
 	if (fs::exists(rootDir))
 	{
 		// delete existing temp folder if it exists, to ensure a clean slate for extraction
@@ -657,6 +657,12 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 	if (!bcfDoc.versionDoc.IsValid())
 	{
 		errMsg = "Write failed: version document is missing";
+		return false;
+	}
+
+	if (bcfDoc.workingPath.empty())
+	{
+		errMsg = "Write failed: working path is empty";
 		return false;
 	}
 
@@ -790,4 +796,22 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 	}
 
 	return true;
+}
+
+void BCFIO::ClearAllWorkingFiles()
+{
+	const auto rootDir = fs::temp_directory_path() / "BCFIO";
+	if (fs::exists(rootDir))
+	{
+		std::error_code ec;
+		fs::remove_all(rootDir, ec);
+		if (ec)
+		{
+			std::cerr << "Failed to clear working files: " << ec.message() << std::endl;
+		}
+		else
+		{
+			std::cout << "Cleared all working files in: " << rootDir.string() << std::endl;
+		}
+	}
 }
