@@ -121,3 +121,9 @@ const XMLLib::XMLDocumentHandle* DocumentStore::ResolveConst(const DocumentRef& 
 
     return &g_Slots[ref.m_Slot].document;
 }
+
+void DocumentStore::Clear()
+{
+    g_Slots.clear();
+    g_FreeSlots.clear();
+}

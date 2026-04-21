@@ -33,4 +33,6 @@ struct DocumentStore // pointer stable static slot map
     static const XMLLib::XMLDocumentHandle* ResolveConst(const DocumentRef& ref);
 
     static bool IsValid(const DocumentRef& ref);
+
+	static void Clear();
 };
