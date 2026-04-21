@@ -80,6 +80,15 @@ inline void CustomTextDemo::DrawSelectedDemo()
 	ImGui::PopStyleColor();
 
     ImGui::Spacing();
+
+    ImGui::Text("Number Formatting");
+    ImGui::Text("1000 ->"); ImGui::SameLine();  ImGui::TextIntFormatted(1000);
+    ImGui::Text("10000 ->"); ImGui::SameLine();  ImGui::TextIntFormatted(10000);
+    ImGui::Text("100000000 ->"); ImGui::SameLine();  ImGui::TextIntFormatted(100000000);
+    ImGui::Text("1234567890 ->"); ImGui::SameLine();  ImGui::TextIntFormatted(1234567890);
+
+
+    ImGui::Spacing();
 }
 
 inline void CustomTextDemo::OnPrePanel()

@@ -2,6 +2,8 @@
 #include <string>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <sstream>
+#include <locale>
 
 namespace
 {
@@ -366,5 +368,12 @@ namespace ImGui
 		va_end(args);
 	}
 
+	inline void TextIntFormatted(int value)
+	{
+		std::stringstream ss;
+		ss.imbue(std::locale("")); // uses system locale (adds commas in most regions)
+		ss << value;
 
+		ImGui::TextUnformatted(ss.str().c_str());
+	};
 }
