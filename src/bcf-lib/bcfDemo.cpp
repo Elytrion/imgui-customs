@@ -135,6 +135,36 @@ bool BCFDemo::ImportTestBCF()
     return true;
 }
 
+bool BCFDemo::ExportTestBCF()
+{
+    m_lastError.clear();
+
+    if (m_bcfOutputPath.empty())
+    {
+        m_status = "Export BCF failed";
+        m_lastError = "Output path is empty";
+        return false;
+	}
+
+    if (!m_loadedBCF.valid)
+    {
+        m_status = "Export BCF failed";
+        m_lastError = "No valid BCF loaded to export";
+        return false;
+    }
+
+    std::string errMsg;
+    bool success = BCFIO::Write(m_loadedBCF, m_bcfOutputPath, errMsg);
+    if (!success)
+    {
+        m_status = "Export BCF failed";
+        m_lastError = errMsg.empty() ? "Unknown error during export" : errMsg;
+        return false;
+    }
+    m_status = "Export BCF succeeded";
+	return true;
+}
+
 void BCFDemo::DrawDocumentRefTree(const char* label, const DocumentRef& ref)
 {
     if (!ref.IsValid())
@@ -229,4 +259,23 @@ void BCFDemo::DisplayBCFImported()
 
         ImGui::PopID();
     }
+}
+
+void BCFDemo::OnCleanup()
+{
+    if (m_loadedBCF.valid)
+    {
+
+
+        if (!m_loadedBCF.workingPath.empty())
+        {
+            std::error_code ec;
+            fs::remove_all(m_loadedBCF.workingPath, ec);
+            if (ec)
+            {
+                std::cerr << "Failed to remove working directory: " << m_loadedBCF.workingPath << "\nError: " << ec.message() << std::endl;
+			}
+        }
+    }
+    DocumentStore::Clear();
 }

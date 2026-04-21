@@ -7,6 +7,7 @@ public:
 	DemoModule( const std::string& selectorName, const std::string& panelName) :
 		selector_name(selectorName), panel_name(panelName) {}
 
+	void virtual OnCleanup() {}; // Called when the demo manager is shutting down, can be used to free any resources used by the demo module
 	void DrawSelector();
 	void DrawPopoutPanel();
 	void virtual BackgroundUpdate() {}; // Called once per frame, regardless of panel open state

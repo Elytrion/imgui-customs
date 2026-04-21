@@ -9,6 +9,7 @@ class BCFDemo : public DemoModule
 {
 public:
     BCFDemo() : DemoModule("BCF", "BCF Demo Panel") {}
+    void OnCleanup() override;
 
 protected:
     void OnPreSelectable() override;
@@ -20,6 +21,7 @@ protected:
 
 private:
     bool ImportTestBCF();
+    bool ExportTestBCF();
     void DisplayBCFImported();
     void DrawXMLNodeTree(const XMLLib::XMLNodeHandle& root);
     void DrawDocumentRefTree(const char* label, const DocumentRef& ref);
@@ -27,6 +29,7 @@ private:
 
 private:
     std::string m_bcfInputPath;
+    std::string m_bcfOutputPath;
     std::string m_status = "Idle";
     std::string m_lastError;
 
@@ -47,6 +50,15 @@ inline void BCFDemo::DrawSelectedDemo()
     if (ImGui::Button("Import BCF"))
     {
         ImportTestBCF();
+    }
+
+    ImGui::Separator();
+
+    ImGui::InputText("Export File Path", &m_bcfOutputPath);
+
+    if (ImGui::Button("Export BCF"))
+    {
+        ExportTestBCF();
     }
 }
 
