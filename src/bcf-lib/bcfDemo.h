@@ -24,8 +24,8 @@ private:
     bool ExportTestBCF();
     void DisplayBCFImported();
     void DrawXMLNodeTree(const XMLLib::XMLNodeHandle& root);
-    void DrawDocumentRefTree(const char* label, const DocumentRef& ref);
-    void DrawOptionalDocumentRefTree(const char* label, const std::optional<DocumentRef>& ref);
+    void DrawDocumentRefTree(const char* label, const BCFDocumentRef& ref);
+    void DrawOptionalDocumentRefTree(const char* label, const std::optional<BCFDocumentRef>& ref);
 
 private:
     std::string m_bcfInputPath;

@@ -303,7 +303,7 @@ namespace
 
 	static bool WriteDocumentRefEntry(
 		zip_t* zip, const std::string& entryName,
-		const DocumentRef& ref, std::string& errMsg,
+		const BCFDocumentRef& ref, std::string& errMsg,
 		bool prettyPrint = true)
 	{
 		if (!ref.IsValid())
@@ -324,7 +324,7 @@ namespace
 
 	static bool WriteOptionalDocumentRefEntry(
 		zip_t* zip, const std::string& entryName,
-		const std::optional<DocumentRef>& ref, std::string& errMsg,
+		const std::optional<BCFDocumentRef>& ref, std::string& errMsg,
 		bool prettyPrint = true)
 	{
 		if (!ref.has_value())
@@ -486,7 +486,7 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 	auto versDocOpt = ParseXMLEntry(zg.zip, versionFileName, errMsg);
 	if (!versDocOpt)
 		return result;
-	result.versionDoc = DocumentStore::Add(std::move(versDocOpt.value()));
+	result.versionDoc = BCFDocumentStore::Add(std::move(versDocOpt.value()));
 
 	// load optional files into document store
 	// if it cannot load up, BCF specifications say NOT to throw an error and simply
@@ -495,17 +495,17 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 	auto documentsDocOpt = ParseXMLEntry(zg.zip, documentsFileName, errMsg);
 	if (documentsDocOpt.has_value())
 	{
-		result.documentsDoc = DocumentStore::Add(std::move(documentsDocOpt.value()));
+		result.documentsDoc = BCFDocumentStore::Add(std::move(documentsDocOpt.value()));
 	}
 	auto extensionsDocOpt = ParseXMLEntry(zg.zip, extensionsFileName, errMsg);
 	if (extensionsDocOpt.has_value())
 	{
-		result.extensionsDoc = DocumentStore::Add(std::move(extensionsDocOpt.value()));
+		result.extensionsDoc = BCFDocumentStore::Add(std::move(extensionsDocOpt.value()));
 	}
 	auto projectDocOpt = ParseXMLEntry(zg.zip, projectFileName, errMsg);
 	if (projectDocOpt.has_value())
 	{
-		result.projectDoc = DocumentStore::Add(std::move(projectDocOpt.value()));
+		result.projectDoc = BCFDocumentStore::Add(std::move(projectDocOpt.value()));
 	}
 	// Check for the additional documents folder
 	// we just need to set a bool since it should always be a root level folder called Documents
@@ -561,14 +561,14 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 			if (!markupDocOpt)
 				continue; // markup is required for a topic once encountered, if it doesnt exist, stop parsing this entry
 			topic.valid = true;
-			topic.markupDoc = DocumentStore::Add(std::move(*markupDocOpt));
+			topic.markupDoc = BCFDocumentStore::Add(std::move(*markupDocOpt));
 		}
 		else if (parts.localName.size() >= strlen(visualExt) &&	// process .bcfv (optional)
 			parts.localName.ends_with(visualExt))
 		{
 			auto viewpointDocOpt = ParseXMLEntry(zg.zip, entryName, errMsg);
 			if (viewpointDocOpt)
-				topic.viewpointDoc.push_back(DocumentStore::Add(std::move(*viewpointDocOpt)));
+				topic.viewpointDoc.push_back(BCFDocumentStore::Add(std::move(*viewpointDocOpt)));
 		}
 		else //snapshot name saving
 		{

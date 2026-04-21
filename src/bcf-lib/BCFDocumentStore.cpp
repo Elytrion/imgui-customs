@@ -12,24 +12,24 @@ namespace
     std::vector<uint32_t> g_FreeSlots;
 }
 
-bool DocumentRef::IsValid() const
+bool BCFDocumentRef::IsValid() const
 {
-    return DocumentStore::IsValid(*this);
+    return BCFDocumentStore::IsValid(*this);
 }
 
-XMLLib::XMLDocumentHandle* DocumentRef::Get()
+XMLLib::XMLDocumentHandle* BCFDocumentRef::Get()
 {
-    return DocumentStore::Resolve(*this);
+    return BCFDocumentStore::Resolve(*this);
 }
 
-const XMLLib::XMLDocumentHandle* DocumentRef::Get() const
+const XMLLib::XMLDocumentHandle* BCFDocumentRef::Get() const
 {
-    return DocumentStore::ResolveConst(*this);
+    return BCFDocumentStore::ResolveConst(*this);
 }
 
-DocumentRef DocumentStore::Add(XMLLib::XMLDocumentHandle doc)
+BCFDocumentRef BCFDocumentStore::Add(XMLLib::XMLDocumentHandle doc)
 {
-    DocumentRef ref;
+    BCFDocumentRef ref;
 
     uint32_t slotIndex;
     if (!g_FreeSlots.empty())
@@ -58,7 +58,7 @@ DocumentRef DocumentStore::Add(XMLLib::XMLDocumentHandle doc)
     return ref;
 }
 
-bool DocumentStore::Remove(const DocumentRef& ref)
+bool BCFDocumentStore::Remove(const BCFDocumentRef& ref)
 {
     if (!IsValid(ref))
         return false;
@@ -73,7 +73,7 @@ bool DocumentStore::Remove(const DocumentRef& ref)
     return true;
 }
 
-XMLLib::XMLDocumentHandle DocumentStore::Adopt(const DocumentRef& ref)
+XMLLib::XMLDocumentHandle BCFDocumentStore::Adopt(const BCFDocumentRef& ref)
 {
     if (!IsValid(ref))
         return XMLLib::XMLDocumentHandle{};
@@ -91,9 +91,9 @@ XMLLib::XMLDocumentHandle DocumentStore::Adopt(const DocumentRef& ref)
     return out;
 }
 
-bool DocumentStore::IsValid(const DocumentRef& ref)
+bool BCFDocumentStore::IsValid(const BCFDocumentRef& ref)
 {
-    if (ref.m_Slot == DocumentRef::InvalidSlot)
+    if (ref.m_Slot == BCFDocumentRef::InvalidSlot)
         return false;
 
     if (ref.m_Slot >= g_Slots.size())
@@ -106,7 +106,7 @@ bool DocumentStore::IsValid(const DocumentRef& ref)
     return slot.generation == ref.m_Generation;
 }
 
-XMLLib::XMLDocumentHandle* DocumentStore::Resolve(const DocumentRef& ref)
+XMLLib::XMLDocumentHandle* BCFDocumentStore::Resolve(const BCFDocumentRef& ref)
 {
     if (!IsValid(ref))
         return nullptr;
@@ -114,7 +114,7 @@ XMLLib::XMLDocumentHandle* DocumentStore::Resolve(const DocumentRef& ref)
     return &g_Slots[ref.m_Slot].document;
 }
 
-const XMLLib::XMLDocumentHandle* DocumentStore::ResolveConst(const DocumentRef& ref)
+const XMLLib::XMLDocumentHandle* BCFDocumentStore::ResolveConst(const BCFDocumentRef& ref)
 {
     if (!IsValid(ref))
         return nullptr;
@@ -122,7 +122,7 @@ const XMLLib::XMLDocumentHandle* DocumentStore::ResolveConst(const DocumentRef& 
     return &g_Slots[ref.m_Slot].document;
 }
 
-void DocumentStore::Clear()
+void BCFDocumentStore::Clear()
 {
     g_Slots.clear();
     g_FreeSlots.clear();

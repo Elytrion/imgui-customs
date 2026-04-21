@@ -10,16 +10,16 @@ struct BCFDocument
 	std::string srcPath = {};                   // the path of the original zip file
 	bool valid = false;
 	bool hasDocumentsFolder = false;
-	DocumentRef versionDoc;						// .version file, required
-	std::optional<DocumentRef> extensionsDoc;	// .xml file, optional, defines the extensions of a project
-	std::optional<DocumentRef> documentsDoc;	// .xml file, optional, defines any additional documents in a project
-	std::optional<DocumentRef> projectDoc;		// .bcfp file, optional, defines details of a project
+	BCFDocumentRef versionDoc;						// .version file, required
+	std::optional<BCFDocumentRef> extensionsDoc;	// .xml file, optional, defines the extensions of a project
+	std::optional<BCFDocumentRef> documentsDoc;	// .xml file, optional, defines any additional documents in a project
+	std::optional<BCFDocumentRef> projectDoc;		// .bcfp file, optional, defines details of a project
 	struct BCFTopicEntry
 	{
 		bool valid = false;						// if false, this topic's markup doc cannot be parsed
 		std::string guid;						// name of the folder is always the guid of the topic
-		DocumentRef markupDoc;					// .bcf file, required
-		std::vector<DocumentRef> viewpointDoc;  // .bcfv files, can be multiple or none
+		BCFDocumentRef markupDoc;					// .bcf file, required
+		std::vector<BCFDocumentRef> viewpointDoc;  // .bcfv files, can be multiple or none
 		std::vector<std::string> snapshotNames; // file names of the snapshots in the topic folder, can be multiple or none
 	};
 	std::unordered_map<std::string, BCFDocument::BCFTopicEntry> topics;

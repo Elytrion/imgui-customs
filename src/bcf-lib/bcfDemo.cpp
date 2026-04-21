@@ -165,7 +165,7 @@ bool BCFDemo::ExportTestBCF()
 	return true;
 }
 
-void BCFDemo::DrawDocumentRefTree(const char* label, const DocumentRef& ref)
+void BCFDemo::DrawDocumentRefTree(const char* label, const BCFDocumentRef& ref)
 {
     if (!ref.IsValid())
         return;
@@ -185,7 +185,7 @@ void BCFDemo::DrawDocumentRefTree(const char* label, const DocumentRef& ref)
     }
 }
 
-void BCFDemo::DrawOptionalDocumentRefTree(const char* label, const std::optional<DocumentRef>& ref)
+void BCFDemo::DrawOptionalDocumentRefTree(const char* label, const std::optional<BCFDocumentRef>& ref)
 {
     if (!ref.has_value())
         return;
@@ -264,5 +264,5 @@ void BCFDemo::DisplayBCFImported()
 void BCFDemo::OnCleanup()
 {
 	BCFIO::ClearAllWorkingFiles();
-    DocumentStore::Clear();
+    BCFDocumentStore::Clear();
 }

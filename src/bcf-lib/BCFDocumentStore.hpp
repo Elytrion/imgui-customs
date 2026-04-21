@@ -3,10 +3,10 @@
 #include <unordered_map>
 #include "xmllib/XMLDocumentHandle.h"
 
-class DocumentRef
+class BCFDocumentRef
 {
 public:
-    DocumentRef() = default;
+    BCFDocumentRef() = default;
 
     bool IsValid() const;
     XMLLib::XMLDocumentHandle* Get();
@@ -20,19 +20,19 @@ private:
 
     static constexpr uint32_t InvalidSlot = 0xFFFFFFFFu;
 
-    friend class DocumentStore;
+    friend class BCFDocumentStore;
 };
 
-struct DocumentStore // pointer stable static slot map
+struct BCFDocumentStore // pointer stable static slot map
 {
-    static DocumentRef Add(XMLLib::XMLDocumentHandle doc);
-    static bool Remove(const DocumentRef& ref);
-    static XMLLib::XMLDocumentHandle Adopt(const DocumentRef& ref);
+    static BCFDocumentRef Add(XMLLib::XMLDocumentHandle doc);
+    static bool Remove(const BCFDocumentRef& ref);
+    static XMLLib::XMLDocumentHandle Adopt(const BCFDocumentRef& ref);
 
-    static XMLLib::XMLDocumentHandle* Resolve(const DocumentRef& ref);
-    static const XMLLib::XMLDocumentHandle* ResolveConst(const DocumentRef& ref);
+    static XMLLib::XMLDocumentHandle* Resolve(const BCFDocumentRef& ref);
+    static const XMLLib::XMLDocumentHandle* ResolveConst(const BCFDocumentRef& ref);
 
-    static bool IsValid(const DocumentRef& ref);
+    static bool IsValid(const BCFDocumentRef& ref);
 
 	static void Clear();
 };
