@@ -1,9 +1,9 @@
 #include "XMLDocumentHandle.h"
+#include "XMLUtils.hpp"
+
 #include <xercesc/dom/DOM.hpp>
 #include <xercesc/framework/LocalFileFormatTarget.hpp>
 #include <xercesc/framework/MemBufFormatTarget.hpp>
-
-#include "XMLUtils.hpp"
 
 using namespace xercesc;
 
@@ -25,7 +25,6 @@ public:
         }
     }
 };
-
 
 XMLDocumentHandle::XMLDocumentHandle()
     : m_ImplXDH(std::make_unique<ImplXDH>())
@@ -79,7 +78,7 @@ void XMLDocumentHandle::setError(const std::string& err)
     m_ImplXDH->lastError = err;
 }
 
-std::string XMLDocumentHandle::ToString() const
+std::string XMLDocumentHandle::ToString(bool prettyPrint) const
 {
     if (!m_ImplXDH || !m_ImplXDH->document)
         return "";
@@ -93,8 +92,11 @@ std::string XMLDocumentHandle::ToString() const
 
     // Pretty print (optional but nice)
     DOMConfiguration* config = serializer->getDomConfig();
-    if (config->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true))
-        config->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true);
+    if (prettyPrint)
+    {
+        if (config->canSetParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true))
+            config->setParameter(XMLUni::fgDOMWRTFormatPrettyPrint, true);
+    }
 
     MemBufFormatTarget target;
     DOMLSOutput* output = ((DOMImplementationLS*)impl)->createLSOutput();

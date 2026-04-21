@@ -22,8 +22,9 @@ public:
     bool IsValid() const;
     const std::string& GetLastError() const;
 
-    std::string ToString() const;
-
+    // since the XMLDocumentHandle owns the DOMDocument
+    // it should be able to save itself
+    std::string ToString(bool prettyPrint = true) const;
     bool SaveToFile(const std::string& filePath, bool prettyPrint = true);
 
     XMLNodeHandle GetRootElement() const;
