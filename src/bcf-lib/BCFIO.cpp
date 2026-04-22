@@ -772,7 +772,7 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 
 			if (!vpGuid.empty())
 			{
-				entryName = guid + "/" + vpGuid + visualExt;
+				entryName = guid + "/" + vpGuid + "_viewpoint" + visualExt;
 			}
 			else
 			{
