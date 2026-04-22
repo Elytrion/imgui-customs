@@ -9,7 +9,8 @@ using namespace xercesc;
 
 namespace XMLLib
 {
-
+// ImplXDH is the internal implementation class for XMLDocumentHandle,
+// used to hide Xerces headers and manage the DOMDocument pointer and error state
 class XMLDocumentHandle::ImplXDH
 {
 public:
@@ -82,8 +83,8 @@ std::string XMLDocumentHandle::ToString(bool prettyPrint) const
 {
     if (!m_ImplXDH || !m_ImplXDH->document)
         return "";
-
-    XMLChGuard domImplement("LS");
+	// Use the DOM LSSerializer to convert the DOMDocument to a string
+	XMLChGuard domImplement("LS"); // 'LS' is the feature name for the Load/Save module of the DOM implementation
     DOMImplementation* impl = DOMImplementationRegistry::getDOMImplementation(domImplement.get());
     if (!impl)
         return "";
@@ -126,7 +127,8 @@ bool XMLDocumentHandle::SaveToFile(const std::string& filePath, bool prettyPrint
 
     try
     {
-        XMLChGuard domImplement("LS");
+        // Convert the XMLDocument to a string, then write that string to a file
+        XMLChGuard domImplement("LS"); 
         DOMImplementation* impl = DOMImplementationRegistry::getDOMImplementation(domImplement.get());
         if (!impl)
         {
@@ -149,12 +151,13 @@ bool XMLDocumentHandle::SaveToFile(const std::string& filePath, bool prettyPrint
 
         DOMLSOutput* output = implLS->createLSOutput();
 
+		// Use LocalFileFormatTarget to write directly to a file
         XMLFormatTarget* target = new LocalFileFormatTarget(filePath.c_str());
         output->setByteStream(target);
 
         const bool ok = serializer->write(m_ImplXDH->document, output);
 
-        delete target;
+		delete target;  // LocalFileFormatTarget needs to be deleted after writing, but before releasing the serializer and output
         output->release();
         serializer->release();
 

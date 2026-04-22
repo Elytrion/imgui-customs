@@ -23,6 +23,7 @@ private:
     XMLCh* m_Ptr = nullptr;
 };
 
+// convenience function to transcode XMLCh* to std::string, returns empty string if input is null or transcoding fails
 static std::string XmlChToString(const XMLCh* text)
 {
     if (!text)

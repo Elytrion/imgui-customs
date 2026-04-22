@@ -3,6 +3,8 @@
 
 namespace XMLLib
 {
+// XMLSchema represents the schema to validate an XML document against during parsing
+// It can either be specified as a file path to a schema file, or as raw text containing the schema definition
 struct XMLSchema
 {
 	XMLSchema(const std::string& systemId = "")

@@ -8,10 +8,10 @@ namespace XMLLib
 
 struct XMLParseConfig
 {
-    bool doNamespaces = false;
-    bool validationConstraintFatal = true;
-    bool validationSchemaFullChecking = false;
-    bool createEntityReferenceNodes = false;
+	bool doNamespaces = false;                  // whether to perform namespace processing during parsing
+	bool validationConstraintFatal = true;      // whether to treat validation constraint violations as fatal errors that cause parsing to fail, or to allow parsing to succeed but report the violations in the XMLDocumentHandle's error state
+    bool validationSchemaFullChecking = false;  // whether to perform full schema validation checks, if a schema is provided
+    bool createEntityReferenceNodes = false;    // whether to create entity reference nodes during parsing
 };
 
 struct XMLParser
