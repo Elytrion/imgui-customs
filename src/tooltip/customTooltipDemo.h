@@ -31,6 +31,8 @@ inline void CustomTooltipDemo::DrawSelectedDemo()
 		ImVec2{ 1.0f, 1.0f }, // pivot
 		ImVec2{ 5.0f, 5.0f }   // offset
 	);
+	ImGui::Separator();
+	ImGui::TextWrapped("Tooltips will always attempt to stay within the viewport, so the tooltip may not appear exactly at the specified pivot/offset if it would go outside the viewport. Try resizing the window to see this behavior.");
 }
 
 inline void CustomTooltipDemo::OnPrePanel()
