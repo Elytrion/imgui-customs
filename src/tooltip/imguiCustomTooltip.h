@@ -35,6 +35,8 @@ namespace ImGui
 		bool keepWithinWorkArea = true; // Clamp tooltip to work area
 
 		ImGuiHoveredFlags hoverFlags = ImGuiHoveredFlags_AllowWhenDisabled | ImGuiHoveredFlags_DelayNormal;
+		ImGuiTooltipFlags tooltipFlags = 0;
+		ImGuiWindowFlags  additionalWindowFlags = 0;
 	};
 
 	// Call this immediately after an item to show a custom tooltip when hovered.
@@ -85,19 +87,10 @@ namespace ImGui
 		ImGuiID hovered_id = ImGui::GetItemID();
 		ImGui::PushID(hovered_id);
 
-		ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoDecoration |
-			ImGuiWindowFlags_AlwaysAutoResize |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoNav |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoInputs;
-
 		ImGui::SetNextWindowPos(pos, ImGuiCond_Always, tooltipPivot);
-		ImGui::Begin("##custom_tooltip", nullptr, flags);
+		ImGui::BeginTooltipEx(cfg.tooltipFlags, cfg.additionalWindowFlags);
 		ImGui::TextUnformatted(tooltipTxt);
-		ImGui::End();
+		ImGui::EndTooltip();
 
 		ImGui::PopID();
 		ImGui::PopStyleColor(3);
