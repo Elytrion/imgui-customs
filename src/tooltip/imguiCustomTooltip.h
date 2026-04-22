@@ -4,16 +4,30 @@
 
 namespace
 {
-	static ImVec2 ClampToWorkArea(const ImVec2& pos, const ImVec2& size, const ImGuiViewport* vp)
+	static ImVec2 ClampToWorkArea(const ImVec2& anchor_pos, const ImVec2& size, const ImVec2& pivot, const ImGuiViewport* vp)
 	{
-		ImVec2 p = pos;
-		const ImVec2 min = vp->WorkPos;
-		const ImVec2 max = { vp->WorkPos.x + vp->WorkSize.x , vp->WorkPos.y + vp->WorkSize.y };
-		if (p.x + size.x > max.x) p.x = max.x - size.x;
-		if (p.y + size.y > max.y) p.y = max.y - size.y;
-		if (p.x < min.x)          p.x = min.x;
-		if (p.y < min.y)          p.y = min.y;
-		return p;
+		const ImVec2 work_min = vp->WorkPos;
+		const ImVec2 work_max = ImVec2(vp->WorkPos.x + vp->WorkSize.x,
+			vp->WorkPos.y + vp->WorkSize.y);
+	
+		// Convert anchor+pivot into actual rect
+		ImVec2 rect_min = ImVec2(
+			anchor_pos.x - pivot.x * size.x,
+			anchor_pos.y - pivot.y * size.y);
+	
+		ImVec2 rect_max = ImVec2(
+			rect_min.x + size.x,
+			rect_min.y + size.y);
+	
+		ImVec2 delta = ImVec2(0.0f, 0.0f);
+	
+		if (rect_max.x > work_max.x) delta.x -= (rect_max.x - work_max.x);
+		if (rect_max.y > work_max.y) delta.y -= (rect_max.y - work_max.y);
+		if (rect_min.x < work_min.x) delta.x += (work_min.x - rect_min.x);
+		if (rect_min.y < work_min.y) delta.y += (work_min.y - rect_min.y);
+	
+		// Apply same correction back to anchor point
+		return ImVec2(anchor_pos.x + delta.x, anchor_pos.y + delta.y);
 	}
 }
 
@@ -21,7 +35,7 @@ namespace ImGui
 {
 	struct CustomTooltipConfig
 	{
-		ImVec2 pivot		{ -1,-1 }; // Pivot point for tooltip positioning (-1,-1 means on cursor), pivot is relative to the item rect (0..1)
+		ImVec2 pivot		{ -1,-1 }; // Pivot point for tooltip positioning (-1,-1 means stay on cursor), pivot is relative to the item rect (0..1)
 		ImVec2 cursorPivot	{ 0,0 }; // if cursor mode, pivot relative to cursor pos (0..1)
 		ImVec2 offset		{ 0,0 }; // Offset from pivot point
 
@@ -52,7 +66,7 @@ namespace ImGui
 		const ImVec2 item_max = ImGui::GetItemRectMax();
 		const ImVec2 item_size = { item_max.x - item_min.x, item_max.y - item_min.y };
 
-		const ImVec2 text_sz = ImGui::CalcTextSize(tooltipTxt, nullptr, false);
+		const ImVec2 text_sz = ImGui::CalcTextSize(tooltipTxt);
 		const ImVec2 pad = cfg.padding;
 		const ImVec2 tip_sz = ImVec2(text_sz.x + pad.x * 2.0f, text_sz.y + pad.y * 2.0f);
 	
@@ -67,14 +81,13 @@ namespace ImGui
 		else
 		{
 			// pivot is normalized relative to item rect (0..1)
-			const ImVec2 itemSizeWithPivot = ImVec2(item_size.x * cfg.pivot.x, item_size.y * cfg.pivot.y);
-			const ImVec2 anchor = { item_min.x + itemSizeWithPivot.x, item_min.y + itemSizeWithPivot.y };
+			const ImVec2 anchor = { item_min.x + item_size.x * cfg.pivot.x, item_min.y + item_size.y * cfg.pivot.y };
 			pos.x = anchor.x + cfg.offset.x;
 			pos.y = anchor.y + cfg.offset.y;
 			tooltipPivot = { 1 - cfg.pivot.x, 1 - cfg.pivot.y }; // inverse pivot for tooltip
 		}
 		if (cfg.keepWithinWorkArea)
-			pos = ClampToWorkArea(pos, tip_sz, vp);
+			pos = ClampToWorkArea(pos, tip_sz, tooltipPivot, vp);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, cfg.padding);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, (cfg.rounding < 0.0f) ? ImGui::GetStyle().WindowRounding : cfg.rounding);
