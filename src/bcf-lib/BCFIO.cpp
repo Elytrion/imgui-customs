@@ -717,15 +717,11 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 			// parse snapshot into memory using stbi
 			auto bytesOpt = ReadBinaryEntry(zg.zip, entryName); // read as binary
 			if (!bytesOpt)
-			{
-				errMsg = "[BCFIO Parse] Warning: Could not read snapshot file: " + entryName;
-			}
-
+				continue;
+			
 			auto imageOpt = DecodeImageMemory(*bytesOpt); // decode using stbi
 			if (!imageOpt)
-			{
-				errMsg = "[BCFIO Parse] Warning: Could not decode snapshot image: " + entryName;
-			}
+				continue;			
 
 			BCFSnapshot snapshot;
 			snapshot.fileName = parts.localName;
