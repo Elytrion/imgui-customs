@@ -123,7 +123,7 @@ bool BCFDemo::ImportTestBCF()
 
     m_loadedBCF = BCFIO::Parse(m_bcfInputPath, m_lastError);
 
-    if (!m_loadedBCF.valid)
+    if (!m_loadedBCF.isValid())
     {
         m_status = "Import BCF failed";
         if (m_lastError.empty())
@@ -146,7 +146,7 @@ bool BCFDemo::ExportTestBCF()
         return false;
 	}
 
-    if (!m_loadedBCF.valid)
+    if (!m_loadedBCF.isValid())
     {
         m_status = "Export BCF failed";
         m_lastError = "No valid BCF loaded to export";
@@ -195,21 +195,21 @@ void BCFDemo::DrawOptionalDocumentRefTree(const char* label, const std::optional
 
 void BCFDemo::DisplayBCFImported()
 {
-    if (!m_loadedBCF.valid)
+    if (!m_loadedBCF.isValid())
         return;
 
     ImGui::Separator();
     ImGui::Text("BCF Summary");
-    ImGui::BulletText("Has Documents folder: %s", m_loadedBCF.hasDocumentsFolder ? "true" : "false");
+    ImGui::BulletText("Has Documents folder: %s", m_loadedBCF.hasDocumentsFolder() ? "true" : "false");
     ImGui::BulletText("Topic count: %d", static_cast<int>(m_loadedBCF.topics.size()));
 
     ImGui::Separator();
     ImGui::Text("Root Documents");
 
-    DrawDocumentRefTree("bcf.version", m_loadedBCF.versionDoc);
-    DrawOptionalDocumentRefTree("project.bcfp", m_loadedBCF.projectDoc);
-    DrawOptionalDocumentRefTree("documents.xml", m_loadedBCF.documentsDoc);
-    DrawOptionalDocumentRefTree("extensions.xml", m_loadedBCF.extensionsDoc);
+    DrawDocumentRefTree("bcf.version", m_loadedBCF.version);
+    DrawOptionalDocumentRefTree("project.bcfp", m_loadedBCF.project);
+    DrawOptionalDocumentRefTree("documents.xml", m_loadedBCF.documents);
+    DrawOptionalDocumentRefTree("extensions.xml", m_loadedBCF.extensions);
 
     ImGui::Separator();
     ImGui::Text("Topics");
@@ -219,36 +219,36 @@ void BCFDemo::DisplayBCFImported()
         ImGui::PushID(guid.c_str());
 
         std::string topicLabel = guid;
-        if (!topic.valid)
+        if (!topic.isValid())
+        {
             topicLabel += " (invalid)";
+            continue;
+        }
 
         if (ImGui::TreeNode(topicLabel.c_str()))
         {
-            ImGui::Text("GUID: %s", topic.guid.c_str());
-            ImGui::Text("Valid: %s", topic.valid ? "true" : "false");
+            DrawDocumentRefTree("markup.bcf", topic.markup.doc);
 
-            DrawDocumentRefTree("markup.bcf", topic.markupDoc);
-
-            if (!topic.viewpointDoc.empty())
+            if (!topic.viewpoints.empty())
             {
                 if (ImGui::TreeNode("Viewpoints"))
                 {
-                    for (size_t i = 0; i < topic.viewpointDoc.size(); ++i)
+                    for (size_t i = 0; i < topic.viewpoints.size(); ++i)
                     {
-                        std::string label = "viewpoint " + std::to_string(i);
-                        DrawDocumentRefTree(label.c_str(), topic.viewpointDoc[i]);
+                        std::string label = topic.viewpoints[i].fileName;
+                        DrawDocumentRefTree(label.c_str(), topic.viewpoints[i].doc);
                     }
                     ImGui::TreePop();
                 }
             }
 
-            if (!topic.snapshotNames.empty())
+            if (!topic.snapshots.empty())
             {
                 if (ImGui::TreeNode("Snapshots"))
                 {
-                    for (const auto& name : topic.snapshotNames)
+                    for (const auto& snapshot : topic.snapshots)
                     {
-                        ImGui::BulletText("%s", name.c_str());
+                        ImGui::BulletText("%s", snapshot.fileName.c_str());
                     }
                     ImGui::TreePop();
                 }
@@ -263,6 +263,5 @@ void BCFDemo::DisplayBCFImported()
 
 void BCFDemo::OnCleanup()
 {
-	BCFIO::ClearAllWorkingFiles();
     BCFDocumentStore::Clear();
 }

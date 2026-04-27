@@ -1,22 +1,43 @@
 #include "BCFIO.h"
-#include "xmllib/XMLParser.h"
+#include "XMLLib/XMLParser.h"
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include "zip.h"
+#include "stb_image.h"
+#include "stb_image_write.h"
 
 namespace fs = std::filesystem;
 namespace
 {
 	// taken from https://github.com/buildingSMART/BCF-XML/tree/release_3_0/Documentation
-	constexpr const char* versionFileName		= "bcf.version";
-	constexpr const char* documentsFileName		= "documents.xml";
-	constexpr const char* documentsFolderName   = "Documents";
-	constexpr const char* extensionsFileName	= "extensions.xml";
-	constexpr const char* projectFileName		= "project.bcfp";
-	constexpr const char* markupFileName		= "markup.bcf";
-	constexpr const char* visualExt				= ".bcfv";
-	constexpr const char* validSnapshotExt[3]	= { ".png",".jpg",".jpeg"};
+	constexpr const char* versionFileName = "bcf.version";
+	constexpr const char* documentsFileName = "documents.xml";
+	constexpr const char* documentsFolderName = "Documents";
+	constexpr const char* extensionsFileName = "extensions.xml";
+	constexpr const char* projectFileName = "project.bcfp";
+	constexpr const char* markupFileName = "markup.bcf";
+	constexpr const char* visualExt = ".bcfv";
+	constexpr const char* validSnapshotExt[3] = { ".png",".jpg",".jpeg" };
+
+	static bool IsSnapshotFile(const fs::path& path)
+	{
+		const std::string ext = path.extension().string();
+		auto lower = [](std::string s)
+			{
+				for (char& c : s)
+					c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+				return s;
+			};
+
+		const std::string e = lower(ext);
+		for (const char* validExt : validSnapshotExt)
+		{
+			if (e == validExt)
+				return true;
+		}
+		return false;
+	}
 
 	// ---------------- READ HELPERS ---------------- 
 	// expects zip to be open for reading
@@ -91,19 +112,19 @@ namespace
 	{
 		if (!ZipEntryExists(zip, name)) // check if entry exists in archive
 		{
-			errOut = "Invalid format: Could not find " + name;
+			errOut = "[ParseXMLEntry] Invalid format: Could not find " + name;
 			return std::nullopt;
 		}
 		auto versOpt = ReadXMLEntry(zip, name); // attempt to read text from file
 		if (!versOpt)
 		{
-			errOut = "Invalid files: Could not open and read " + name;
+			errOut = "[ParseXMLEntry] Invalid files: Could not open and read " + name;
 			return std::nullopt;
 		}
 		auto versDocHandle = XMLLib::XMLParser::ParseMemory(versionFileName, versOpt.value()); // Attempt to parse xml into DOMdocument format
 		if (!versDocHandle.IsValid())
 		{
-			errOut = "Invalid Files: Could not DOM parse xml from " + name;
+			errOut = "[ParseXMLEntry] Invalid Files: Could not DOM parse xml from " + name;
 			return std::nullopt;
 		}
 		return versDocHandle;
@@ -210,11 +231,71 @@ namespace
 		return true;
 	}
 
+	std::optional<std::vector<std::uint8_t>> ReadBinaryEntry(zip_t* zip, const std::string& name)
+	{
+		if (!zip)
+			return std::nullopt;
+
+		if (zip_entry_open(zip, name.c_str()) != 0)
+			return std::nullopt;
+
+		void* buf = nullptr;
+		size_t size = 0;
+
+		if (zip_entry_read(zip, &buf, &size) < 0 || size == 0)
+		{
+			zip_entry_close(zip);
+			return std::nullopt;
+		}
+
+		std::vector<std::uint8_t> bytes(
+			static_cast<std::uint8_t*>(buf),
+			static_cast<std::uint8_t*>(buf) + size
+		);
+
+		free(buf);
+		zip_entry_close(zip);
+
+		return bytes;
+	}
+
+	std::optional<ImageData> DecodeImageMemory(const std::vector<std::uint8_t>& bytes)
+	{
+		int width = 0;
+		int height = 0;
+		int sourceChannels = 0;
+
+		// RGBA for consistency
+		unsigned char* decoded = stbi_load_from_memory(
+			bytes.data(),
+			static_cast<int>(bytes.size()),
+			&width,
+			&height,
+			&sourceChannels,
+			4
+		);
+
+		if (!decoded)
+			return std::nullopt;
+
+		ImageData image;
+		image.width = width;
+		image.height = height;
+		image.channels = 4;
+		image.data.assign(decoded, decoded + width * height * 4);
+
+		stbi_image_free(decoded);
+
+		return image;
+	}
+
 
 	// ---------------- WRITE HELPERS ---------------- 
 	static std::filesystem::path BuildWritePath(const std::string& writePath, const BCFIO::WriteConfig& cfg)
 	{
 		std::filesystem::path out(writePath);
+		if (out.has_extension())
+			return out; 	// check if write path has an extension and use it over cfg.extToUse
 		if (!cfg.extToUse.empty())
 			out.replace_extension(cfg.extToUse);
 		return out;
@@ -388,61 +469,117 @@ namespace
 		return true;
 	}
 
-	static bool IsSnapshotFile(const fs::path& path)
+	static std::string ToZipPath(const fs::path& path)
 	{
-		const std::string ext = path.extension().string();
+		return path.generic_string(); // always forward slashes
+	}
+
+
+	static void StbiWriteToVector(void* context, void* data, int size)
+	{
+		auto* out = static_cast<std::vector<std::uint8_t>*>(context);
+
+		const auto* bytes = static_cast<const std::uint8_t*>(data);
+		out->insert(out->end(), bytes, bytes + size);
+	}
+
+	static bool WriteImageEntry(
+		zip_t* zip, const std::string& entryName, const BCFIO::WriteConfig& cfg,
+		const ImageData& image, std::string& errMsg)
+	{
+		if (!zip)
+		{
+			errMsg = "[BCFIO Write] Write failed: invalid zip handle";
+			return false;
+		}
+
+		if (image.width <= 0 || image.height <= 0 || image.channels <= 0 || image.data.empty())
+		{
+			errMsg = "[BCFIO Write] Write failed: invalid image data for: " + entryName;
+			return false;
+		}
+
+		std::vector<std::uint8_t> encoded;
 		auto lower = [](std::string s)
 			{
 				for (char& c : s)
 					c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 				return s;
 			};
+		const std::string lowerName = lower(entryName);
 
-		const std::string e = lower(ext);
-		return e == ".png" || e == ".jpg" || e == ".jpeg";
-	}
+		int ok = 0;
 
-	static std::string ToZipPath(const fs::path& path)
-	{
-		return path.generic_string(); // always forward slashes
-	}
-
-	static bool WriteTopicSnapshotEntries(
-		zip_t* zip,
-		const fs::path& workingPath,
-		const std::string& guid,
-		std::string& errMsg)
-	{
-		if (workingPath.empty())
-			return true;
-
-		const fs::path topicRoot = workingPath / guid;
-		if (!fs::exists(topicRoot))
-			return true;
-
-		if (!fs::is_directory(topicRoot))
+		auto saveAsJPEG = [&]() -> bool
 		{
-			errMsg = "WriteTopicSnapshotEntries: topic path exists but is not a directory for " + guid;
+			const int quality = 90;
+			return stbi_write_jpg_to_func(
+				StbiWriteToVector,
+				&encoded,
+				image.width,
+				image.height,
+				image.channels,
+				image.data.data(),
+				quality
+			) != 0;
+		};
+
+		auto saveAsPNG = [&]() -> bool
+		{
+			const int strideBytes = image.width * image.channels;
+			return stbi_write_png_to_func(
+				StbiWriteToVector,
+				&encoded,
+				image.width,
+				image.height,
+				image.channels,
+				image.data.data(),
+				strideBytes
+			) != 0;
+		};
+
+		switch (cfg.snapshotSaveFormat)
+		{
+			case BCFIO::WriteConfig::PNG:
+				ok = saveAsPNG();
+				break;
+			case BCFIO::WriteConfig::JPEG:
+				ok = saveAsJPEG();
+				break;
+			case BCFIO::WriteConfig::ORIGINAL:
+			{
+				if (lowerName.ends_with(".jpg") || lowerName.ends_with(".jpeg"))
+					 ok = saveAsJPEG();
+				 else if (lowerName.ends_with(".png"))
+					 ok = saveAsPNG();
+				 else
+				 {
+					 errMsg = "[BCFIO Write] Write failed: unrecognized image extension for: " + entryName;
+					 return false;
+				 }
+			}
+		}
+
+		if (!ok || encoded.empty())
+		{
+			errMsg = "[BCFIO Write] Write failed: could not encode image: " + entryName;
 			return false;
 		}
 
-		for (const auto& entry : fs::recursive_directory_iterator(topicRoot))
+		if (zip_entry_open(zip, entryName.c_str()) != 0)
 		{
-			if (!entry.is_regular_file())
-				continue;
-
-			const fs::path fullPath = entry.path();
-
-			if (!IsSnapshotFile(fullPath))
-				continue; // skip markup/viewpoints/other files
-
-			const fs::path relPath = fs::relative(fullPath, workingPath);
-			const std::string zipPath = ToZipEntryPath(relPath);
-
-			if (!WriteBinaryFileEntry(zip, zipPath, fullPath, errMsg))
-				return false;
+			errMsg = "[BCFIO Write] Write failed: could not create zip entry: " + entryName;
+			return false;
 		}
 
+		if (zip_entry_write(zip, encoded.data(), encoded.size()) < 0)
+		{
+			zip_entry_close(zip);
+			errMsg = "[BCFIO Write] Write failed: could not write zip entry: " + entryName;
+			return false;
+		}
+
+		zip_entry_close(zip);
 		return true;
 	}
 }
@@ -457,25 +594,25 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 	const fs::path bcfPath{ bcfFilePath };
 	if (!bcfPath.has_extension())
 	{
-		errMsg = "Invalid file path: No extension";
+		errMsg = "[BCFIO Parse] Invalid file path: No extension";
 		return result;
 	}
 	if (bcfPath.extension() != ".bcf" && bcfPath.extension() != ".bcfzip")
 	{
-		errMsg = "Invalid file path: Wrong extension (must be .bcf or .bcfzip)";
+		errMsg = "[BCFIO Parse] Invalid file path: Wrong extension (must be .bcf or .bcfzip)";
 		return result;
 	}
 	// will close the zip file if exited early
 	ZipGuard zg(bcfFilePath.c_str(), 'r'); // r for read only
 	if (!zg.valid())
 	{
-		errMsg = "Invalid file: Invalid zip file or not a zip file";
+		errMsg = "[BCFIO Parse] Invalid file: Invalid zip file or not a zip file";
 		return result;
 	}
 	int entryCount = zip_entries_total(zg.zip);
 	if (entryCount <= 0)
 	{
-		errMsg = "Invalid file: Empty zip file";
+		errMsg = "[BCFIO Parse] Invalid file: Empty zip file";
 		return result;
 	}
 
@@ -486,33 +623,32 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 	auto versDocOpt = ParseXMLEntry(zg.zip, versionFileName, errMsg);
 	if (!versDocOpt)
 		return result;
-	result.versionDoc = BCFDocumentStore::Add(std::move(versDocOpt.value()));
+	result.version = BCFDocumentStore::Add(std::move(versDocOpt.value()));
 
 	// load optional files into document store
 	// if it cannot load up, BCF specifications say NOT to throw an error and simply
 	// ignore these files. errMsg is cleared, so logging is required to see if any
 	// errors actually occured here
-	auto documentsDocOpt = ParseXMLEntry(zg.zip, documentsFileName, errMsg);
+	std::string optErrMsg = "";
+	auto documentsDocOpt = ParseXMLEntry(zg.zip, documentsFileName, optErrMsg);
 	if (documentsDocOpt.has_value())
 	{
-		result.documentsDoc = BCFDocumentStore::Add(std::move(documentsDocOpt.value()));
+		result.documents = BCFDocumentStore::Add(std::move(documentsDocOpt.value()));
 	}
-	auto extensionsDocOpt = ParseXMLEntry(zg.zip, extensionsFileName, errMsg);
+	auto extensionsDocOpt = ParseXMLEntry(zg.zip, extensionsFileName, optErrMsg);
 	if (extensionsDocOpt.has_value())
 	{
-		result.extensionsDoc = BCFDocumentStore::Add(std::move(extensionsDocOpt.value()));
+		result.extensions = BCFDocumentStore::Add(std::move(extensionsDocOpt.value()));
 	}
-	auto projectDocOpt = ParseXMLEntry(zg.zip, projectFileName, errMsg);
+	auto projectDocOpt = ParseXMLEntry(zg.zip, projectFileName, optErrMsg);
 	if (projectDocOpt.has_value())
 	{
-		result.projectDoc = BCFDocumentStore::Add(std::move(projectDocOpt.value()));
+		result.project = BCFDocumentStore::Add(std::move(projectDocOpt.value()));
 	}
 	// Check for the additional documents folder
 	// we just need to set a bool since it should always be a root level folder called Documents
 	// and any access to those files just needs to access Documents/... 
-	result.hasDocumentsFolder = ZipHasFolder(zg.zip, documentsFolderName);
-	errMsg.clear();
-
+	result.hasDocFolder = ZipHasFolder(zg.zip, documentsFolderName);
 	/*
 	for each entry in zip:
 		if no '/' -> skip
@@ -547,7 +683,7 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 		// validate GUID format (cheap check for now)
 		if (parts.guid.size() != 36)
 			continue;
-		if (!(parts.guid[8] == '-' && parts.guid[13] == '-' 
+		if (!(parts.guid[8] == '-' && parts.guid[13] == '-'
 			&& parts.guid[18] == '-' && parts.guid[23] == '-'))
 			continue;
 
@@ -560,86 +696,45 @@ BCFDocument BCFIO::Parse(const std::string& bcfFilePath, std::string& errMsg, co
 			auto markupDocOpt = ParseXMLEntry(zg.zip, entryName, errMsg);
 			if (!markupDocOpt)
 				continue; // markup is required for a topic once encountered, if it doesnt exist, stop parsing this entry
-			topic.valid = true;
-			topic.markupDoc = BCFDocumentStore::Add(std::move(*markupDocOpt));
+
+			topic.markup.doc = BCFDocumentStore::Add(std::move(*markupDocOpt));
 		}
 		else if (parts.localName.size() >= strlen(visualExt) &&	// process .bcfv (optional)
 			parts.localName.ends_with(visualExt))
 		{
 			auto viewpointDocOpt = ParseXMLEntry(zg.zip, entryName, errMsg);
 			if (viewpointDocOpt)
-				topic.viewpointDoc.push_back(BCFDocumentStore::Add(std::move(*viewpointDocOpt)));
-		}
-		else //snapshot name saving
-		{
-			for (const char* ext : validSnapshotExt) // iterate through all valid snapshot exts
 			{
-				std::string extStr = ext;
-				if (parts.localName.size() >= extStr.size() &&
-					parts.localName.ends_with(extStr))
-				{
-					topic.snapshotNames.push_back(parts.localName);
-					break;
-				}
+				BCFViewpoint vp;
+				vp.doc = BCFDocumentStore::Add(std::move(*viewpointDocOpt));
+				vp.fileName = parts.localName;
+				vp.guid = vp.doc.Get()->GetRootElement().GetAttribute("Guid");
+				topic.viewpoints.push_back(std::move(vp));
 			}
 		}
-	}
-
-	//extract working assets to temp folder (snapshots and documents)
-	auto ShouldExtractAssetEntry = [&](const std::string& entryName) -> bool
+		else if (IsSnapshotFile(parts.localName))
 		{
-			if (entryName.empty())
-				return false;
+			// parse snapshot into memory using stbi
+			auto bytesOpt = ReadBinaryEntry(zg.zip, entryName); // read as binary
+			if (!bytesOpt)
+			{
+				errMsg = "[BCFIO Parse] Warning: Could not read snapshot file: " + entryName;
+			}
 
-			if (entryName.starts_with("Documents/")) // extract Documents folder
-				return true;
+			auto imageOpt = DecodeImageMemory(*bytesOpt); // decode using stbi
+			if (!imageOpt)
+			{
+				errMsg = "[BCFIO Parse] Warning: Could not decode snapshot image: " + entryName;
+			}
 
-			auto slashPos = entryName.find('/');
-			if (slashPos == std::string::npos)
-				return false; // root-level file
+			BCFSnapshot snapshot;
+			snapshot.fileName = parts.localName;
+			snapshot.image = std::move(*imageOpt);
 
-			std::string localName = entryName.substr(slashPos + 1);
-			if (localName.empty())
-				return false; // directory entry
-
-			// extract snapshot files
-			return IsSnapshotFile(localName);
-		};
-	const auto rootDir = fs::temp_directory_path() / "BCFIO" / fs::path(bcfPath.stem());
-	if (fs::exists(rootDir))
-	{
-		// delete existing temp folder if it exists, to ensure a clean slate for extraction
-		std::error_code ec;
-		fs::remove_all(rootDir, ec);
-		if (ec)
-		{
-			errMsg = "Failed to clear existing temp directory: " + rootDir.string() + " Error: " + ec.message();
-			return result;
-		}
-		else
-		{
-			std::cout << "Cleared existing temp directory: " << rootDir.string() << std::endl;
+			topic.snapshots.push_back(std::move(snapshot));
 		}
 	}
 
-	for (int i = 0; i < entryCount; ++i)
-	{
-		if (zip_entry_openbyindex(zg.zip, i) != 0)
-			continue;
-
-		const char* rawName = zip_entry_name(zg.zip);
-		std::string entryName = rawName ? rawName : "";
-
-		zip_entry_close(zg.zip);
-
-		if (!ShouldExtractAssetEntry(entryName))
-			continue;
-
-		if (!ExtractZipEntryToFile(zg.zip, entryName, rootDir, errMsg))
-			continue;
-	}
-	result.workingPath = rootDir.string();
-	std::cout << "Extracted working assets to " << result.workingPath << std::endl;
 	result.valid = true;
 	return result;
 }
@@ -648,21 +743,15 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 {
 	errMsg.clear();
 
-	if (!bcfDoc.valid)
+	if (!bcfDoc.isValid())
 	{
-		errMsg = "Write failed: BCF document is invalid";
+		errMsg = "[BCFIO Write] Write failed: BCF document is invalid";
 		return false;
 	}
 
-	if (!bcfDoc.versionDoc.IsValid())
+	if (!bcfDoc.version.IsValid())
 	{
-		errMsg = "Write failed: version document is missing";
-		return false;
-	}
-
-	if (bcfDoc.workingPath.empty())
-	{
-		errMsg = "Write failed: working path is empty";
+		errMsg = "[BCFIO Write] Write failed: version document is missing";
 		return false;
 	}
 
@@ -671,7 +760,7 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 
 	if (cfg.writeToNewFile && fs::exists(outPath))
 	{
-		errMsg = "Write failed: output file already exists: " + outPath.string();
+		errMsg = "[BCFIO Write] Write failed: output file already exists: " + outPath.string();
 		return false;
 	}
 	else if (!cfg.writeToNewFile && fs::exists(outPath))
@@ -680,7 +769,7 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 		fs::remove(outPath, ec);
 		if (ec)
 		{
-			errMsg = "Write failed: could not remove existing output file: " + outPath.string();
+			errMsg = "[BCFIO Write] Write failed: could not remove existing output file: " + outPath.string();
 			return false;
 		}
 	}
@@ -688,64 +777,63 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 	ZipGuard zg(outPath.string().c_str(), 'w', ZIP_DEFAULT_COMPRESSION_LEVEL); // w for writing
 	if (!zg.valid())
 	{
-		errMsg = "Write failed: could not open output zip";
+		errMsg = "[BCFIO Write] Write failed: could not open output zip";
 		return false;
 	}
 
 	// Root-level required doc
-	if (!WriteDocumentRefEntry(zg.zip, versionFileName, bcfDoc.versionDoc, errMsg))
+	if (!WriteDocumentRefEntry(zg.zip, versionFileName, bcfDoc.version, errMsg))
 		return false; // could not write bcf.version
 
 	// Root-level optional docs
-	if (!WriteOptionalDocumentRefEntry(zg.zip, projectFileName, bcfDoc.projectDoc, errMsg))
+	if (!WriteOptionalDocumentRefEntry(zg.zip, projectFileName, bcfDoc.project, errMsg))
 		return false;
 
-	if (!WriteOptionalDocumentRefEntry(zg.zip, documentsFileName, bcfDoc.documentsDoc, errMsg))
+	if (!WriteOptionalDocumentRefEntry(zg.zip, documentsFileName, bcfDoc.documents, errMsg))
 		return false;
 
-	if (!WriteOptionalDocumentRefEntry(zg.zip, extensionsFileName, bcfDoc.extensionsDoc, errMsg))
+	if (!WriteOptionalDocumentRefEntry(zg.zip, extensionsFileName, bcfDoc.extensions, errMsg))
 		return false;
 
+	// DEPRECATED:
 	// Explicit Documents/ directory if working assets contain it or flag says it exists
-	fs::path const workingPath = bcfDoc.workingPath;
-	if (bcfDoc.hasDocumentsFolder)
-	{
-		if (!WriteDirectoryEntry(zg.zip, documentsFolderName, errMsg))
-			return false;
-
-		// copy all the document files from the working path into the zip under Documents/.
-		if (!workingPath.empty())
-		{
-			const fs::path docsRoot = workingPath / documentsFolderName;
-			if (fs::exists(docsRoot) && fs::is_directory(docsRoot))
-			{
-				for (const auto& entry : fs::recursive_directory_iterator(docsRoot))
-				{
-					const fs::path fullPath = entry.path();
-					const fs::path relPath = fs::relative(fullPath, workingPath);
-					const std::string zipPath = ToZipEntryPath(relPath);
-
-					if (entry.is_directory())
-					{
-						if (!WriteDirectoryEntry(zg.zip, zipPath, errMsg))
-							continue;
-					}
-					else if (entry.is_regular_file())
-					{
-						if (!WriteBinaryFileEntry(zg.zip, zipPath, fullPath, errMsg))
-							continue;
-					}
-				}
-			}
-		}
-	}
+	//fs::path const workingPath = bcfDoc.workingPath;
+	//if (bcfDoc.hasDocumentsFolder)
+	//{
+	//	if (!WriteDirectoryEntry(zg.zip, documentsFolderName, errMsg))
+	//		return false;
+	//	// copy all the document files from the working path into the zip under Documents/.
+	//	if (!workingPath.empty())
+	//	{
+	//		const fs::path docsRoot = workingPath / documentsFolderName;
+	//		if (fs::exists(docsRoot) && fs::is_directory(docsRoot))
+	//		{
+	//			for (const auto& entry : fs::recursive_directory_iterator(docsRoot))
+	//			{
+	//				const fs::path fullPath = entry.path();
+	//				const fs::path relPath = fs::relative(fullPath, workingPath);
+	//				const std::string zipPath = ToZipEntryPath(relPath);
+	//				if (entry.is_directory())
+	//				{
+	//					if (!WriteDirectoryEntry(zg.zip, zipPath, errMsg))
+	//						continue;
+	//				}
+	//				else if (entry.is_regular_file())
+	//				{
+	//					if (!WriteBinaryFileEntry(zg.zip, zipPath, fullPath, errMsg))
+	//						continue;
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 
 	for (const auto& [guid, topic] : bcfDoc.topics)
 	{
-		if (!topic.valid)
+		if (!topic.isValid())
 			continue;
 
-		// Explicit topic folder entry
+		// Explicit topic folder entry writing
 		// BCF XML specifications state to be a valid .bcfzip directory entries MUST exist in the file
 		// that is if there is a guidxxx1/markup.bcf, there MUST BE ONE & only ONE guixxx1/ entry
 		// basically one entry per topic folder, plus it's contents
@@ -753,13 +841,15 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 			return false;
 
 		// Required markup
-		if (!WriteDocumentRefEntry(zg.zip, guid + "/" + markupFileName, topic.markupDoc, errMsg))
+		if (!WriteDocumentRefEntry(zg.zip, guid + "/" + markupFileName, topic.markup.doc, errMsg))
 			return false;
 
 		int unnamedVpIndex = 0;
 
-		for (const auto& vpDocRef : topic.viewpointDoc)
+		// write all viewpoints
+		for (const auto& vp : topic.viewpoints)
 		{
+			auto& vpDocRef = vp.doc;
 			if (!vpDocRef.IsValid())
 				continue;
 
@@ -772,7 +862,7 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 
 			if (!vpGuid.empty())
 			{
-				entryName = guid + "/" + vpGuid + "_viewpoint" + visualExt;
+				entryName = guid + "/" + vpGuid + (cfg.viewpointsHaveTailName ? "_viewpoint" : "") + visualExt;
 			}
 			else
 			{
@@ -791,27 +881,19 @@ bool BCFIO::Write(const BCFDocument& bcfDoc, const std::string& writePath, std::
 				return false;
 		}
 
-		if (!WriteTopicSnapshotEntries(zg.zip, workingPath, guid, errMsg))
-			return false;
+		// write all snapshots
+		for (const auto& snap : topic.snapshots)
+		{
+			if (snap.image.data.empty())
+				continue;
+
+			std::string snapName = snap.fileName;
+			const std::string entryName = guid + "/" + snapName;
+
+			if (!WriteImageEntry(zg.zip, entryName, cfg, snap.image, errMsg))
+				return false;
+		}
 	}
 
 	return true;
-}
-
-void BCFIO::ClearAllWorkingFiles()
-{
-	const auto rootDir = fs::temp_directory_path() / "BCFIO";
-	if (fs::exists(rootDir))
-	{
-		std::error_code ec;
-		fs::remove_all(rootDir, ec);
-		if (ec)
-		{
-			std::cerr << "Failed to clear working files: " << ec.message() << std::endl;
-		}
-		else
-		{
-			std::cout << "Cleared all working files in: " << rootDir.string() << std::endl;
-		}
-	}
 }
