@@ -94,6 +94,12 @@ add_library(miniz STATIC external/miniz/zip.c)
 
 target_include_directories(miniz PUBLIC external/miniz)
 
+# --- Add STB ----
+add_library(stb STATIC external/stb/stb_impl.cpp)
+
+target_include_directories(stb PUBLIC external/stb)
+
+
 # ---- App target ----
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
@@ -128,6 +134,7 @@ target_link_libraries(imgui_customs PRIVATE
   glm::glm
   xerces-c
   miniz
+  stb
 )
 
 # Windows: link necessary system libs
