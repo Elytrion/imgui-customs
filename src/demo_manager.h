@@ -48,6 +48,8 @@ public:
 
 	static void Cleanup()
 	{
+		for (auto& module : demo_modules)
+			module->OnCleanup();
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
