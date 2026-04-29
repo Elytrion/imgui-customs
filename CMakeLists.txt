@@ -107,6 +107,7 @@ target_link_libraries(imgui_customs PRIVATE
   glfw
   glad
   glm::glm
+  stb
 )
 
 # Windows: link necessary system libs
