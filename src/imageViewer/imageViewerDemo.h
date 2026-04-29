@@ -1,65 +1,347 @@
 #pragma once
+
 #include "imguiImage.h"
 #include "demo_module.h"
-#include <vector>
-#include <algorithm>
+
+#include <array>
+#include <string>
 
 class ImageViewerDemo : public DemoModule
 {
 public:
-    ImageViewerDemo() : DemoModule("Image Viewer", "Image Viewer Panel") { }
+    ImageViewerDemo() : DemoModule("Image Viewer", "Image Viewer Panel") {}
+
     void OnCleanup() override
     {
-        // Clear the texture cache
+		// Must be called before the OpenGL context is destroyed
         ImGui::CleanAllTextures();
-	}
+    }
 
 protected:
     void DrawSelectedDemo() override;
     void OnPrePanel() override;
     void DrawDemoPanel() override;
-
-	std::string image_path;
-	bool show_image = false;
-	ImVec2 img_size;
 };
+
+inline const char* FitModeName(ImGuiImageFit fit)
+{
+    switch (fit)
+    {
+    case ImGuiImageFit::STRETCH:   return "Stretch";
+    case ImGuiImageFit::CONTAIN:   return "Contain";
+    case ImGuiImageFit::COVER:     return "Cover";
+    case ImGuiImageFit::CUSTOM_UV: return "Custom UV";
+    default:                       return "Unknown";
+    }
+}
 
 inline void ImageViewerDemo::DrawSelectedDemo()
 {
-    static char buf[256] = "";
-    if (ImGui::InputText("Image Path", buf, sizeof(buf)))
-    {
-		image_path = buf;
-    }
-	ImGui::InputFloat2("Image Size", (float*)&img_size, "%.1f", ImGuiInputTextFlags_CharsDecimal);
-    if (ImGui::Button("Load Image"))
-    {
-        if (image_path.empty())
-			return;
+    static std::array<char, 260> path_buf = {};
+    static ImVec2 preview_size = ImVec2(0.0f, 0.0f);
+    static ImGuiImageConfig cfg;
+    static bool show_image = false;
 
-        show_image = true;
+    ImGui::TextWrapped(
+        "Displays an image as a texture from a provided file path. "
+        "The image is cached by path and reused after first load."
+    );
+
+    ImGui::InputText("Image Path", path_buf.data(), path_buf.size());
+    ImGui::TextWrapped("If size is set to 0,0, the base image size is used instead");
+    ImGui::DragFloat2("Image Size", &preview_size.x, 1.0f, 0.0f, 2048.0f, "%.1f");
+
+    if (ImGui::Button("Load Image"))
+        show_image = path_buf[0] != '\0';
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Clear"))
+    {
+        if (path_buf[0] != '\0')
+            ImGui::CleanTexture(path_buf.data());
+
+        show_image = false;
     }
+
     if (show_image)
     {
         ImGui::Separator();
-        ImGui::DrawTexture(image_path, img_size);
-        if (ImGui::Button("Clear Image"))
-        {
-            show_image = false;
-			ImGui::CleanTexture(image_path);
-            image_path.clear();
-			buf[0] = '\0';
-        }
-	}
-
+        ImGui::DrawTexture(path_buf.data(), cfg, preview_size);
+    }
 }
 
 inline void ImageViewerDemo::OnPrePanel()
 {
-    ImGui::SetNextWindowSize({ 700, 600 }, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({ 760, 680 }, ImGuiCond_Appearing);
 }
 
 inline void ImageViewerDemo::DrawDemoPanel()
 {
-    DrawPlaceholderText();
+    static ImGuiImageConfig cfg;
+    static std::array<char, 260> path_buf = {};
+    static ImVec2 image_size = ImVec2(256.0f, 256.0f);
+    static bool show_preview_info = true;
+    static bool auto_draw = true;
+
+    ImGui::TextUnformatted("Image Viewer Playground");
+    ImGui::Separator();
+
+    ImGui::BeginChild(
+        "image_preview_child",
+        ImVec2(0, 0),
+        ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY
+    );
+
+    {
+        const bool has_path = path_buf[0] != '\0';
+
+        if (!has_path)
+        {
+            ImGui::TextDisabled("Enter an image path below to preview it here.");
+        }
+        else if (auto_draw)
+        {
+            ImGui::DrawTexture(path_buf.data(), cfg, image_size);
+        }
+        else
+        {
+            ImGui::TextDisabled("Auto draw is disabled. Enable it below to preview the image.");
+        }
+
+        if (show_preview_info)
+        {
+            ImGui::Separator();
+            ImGui::Text("Path: %s", has_path ? path_buf.data() : "<empty>");
+            ImGui::Text("Requested size: %.1f x %.1f", image_size.x, image_size.y);
+            ImGui::Text("Fit mode: %s", FitModeName(cfg.fit));
+            ImGui::Text("Debug text: %s", cfg.debug ? "enabled" : "disabled");
+        }
+    }
+
+    ImGui::EndChild();
+
+    ImGui::Spacing();
+    ImGui::SeparatorText("Settings");
+
+    if (ImGui::BeginTable("image_cfg_table", 2, ImGuiTableFlags_SizingStretchProp))
+    {
+        ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 170.0f);
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Image Path");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::InputText("##image_path", path_buf.data(), path_buf.size());
+
+        DrawHelpTooltip(
+            "Path is cached internally. The first draw loads the image and uploads it to OpenGL. "
+            "Later draws reuse the cached texture."
+        );
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Draw");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox("Auto draw preview", &auto_draw);
+
+        ImGui::SameLine();
+
+        if (ImGui::SmallButton("Clean this texture"))
+        {
+            if (path_buf[0] != '\0')
+                ImGui::CleanTexture(path_buf.data());
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::SmallButton("Clean all"))
+            ImGui::CleanAllTextures();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Size (W,H)");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::DragFloat2("##image_size", &image_size.x, 1.0f, 0.0f, 4096.0f, "%.1f");
+
+        DrawHelpTooltip("Use 0 for either axis to use the texture's original width or height.");
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Fit Mode");
+
+        ImGui::TableSetColumnIndex(1);
+
+        {
+            int fit = static_cast<int>(cfg.fit);
+            const char* fit_names[] = {
+                "Stretch",
+                "Contain",
+                "Cover",
+                "Custom UV"
+            };
+
+            if (ImGui::BeginCombo("##fit_mode", fit_names[fit]))
+            {
+                for (int i = 0; i < IM_ARRAYSIZE(fit_names); ++i)
+                {
+                    const bool selected = fit == i;
+
+                    if (ImGui::Selectable(fit_names[i], selected))
+                    {
+                        fit = i;
+                        cfg.fit = static_cast<ImGuiImageFit>(i);
+                    }
+
+                    if (selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+
+                ImGui::EndCombo();
+            }
+        }
+
+        DrawHelpTooltip(
+            "Stretch distorts to the requested size. "
+            "Contain preserves aspect ratio inside the box. "
+            "Cover crops while filling the box. "
+            "Custom UV uses the UV values below."
+        );
+
+        const bool use_custom_uv = cfg.fit == ImGuiImageFit::CUSTOM_UV;
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("UV0");
+
+        ImGui::TableSetColumnIndex(1);
+
+        if (!use_custom_uv)
+            ImGui::BeginDisabled();
+
+        ImGui::DragFloat2("##uv0", &cfg.uv0.x, 0.005f, -2.0f, 2.0f, "%.3f");
+
+        if (!use_custom_uv)
+            ImGui::EndDisabled();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("UV1");
+
+        ImGui::TableSetColumnIndex(1);
+
+        if (!use_custom_uv)
+            ImGui::BeginDisabled();
+
+        ImGui::DragFloat2("##uv1", &cfg.uv1.x, 0.005f, -2.0f, 2.0f, "%.3f");
+
+        if (!use_custom_uv)
+            ImGui::EndDisabled();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("UV Presets");
+
+        ImGui::TableSetColumnIndex(1);
+
+        if (!use_custom_uv)
+            ImGui::BeginDisabled();
+
+        if (ImGui::SmallButton("Full"))
+        {
+            cfg.uv0 = ImVec2(0.0f, 0.0f);
+            cfg.uv1 = ImVec2(1.0f, 1.0f);
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::SmallButton("Center crop UV"))
+        {
+            cfg.uv0 = ImVec2(0.25f, 0.25f);
+            cfg.uv1 = ImVec2(0.75f, 0.75f);
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::SmallButton("Flip Y"))
+        {
+            cfg.uv0 = ImVec2(0.0f, 1.0f);
+            cfg.uv1 = ImVec2(1.0f, 0.0f);
+        }
+
+        if (!use_custom_uv)
+            ImGui::EndDisabled();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Tint Color");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::ColorEdit4("##tint_col", &cfg.tint_col.x, ImGuiColorEditFlags_AlphaBar);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Background Color");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::ColorEdit4("##bg_col", &cfg.bg_col.x, ImGuiColorEditFlags_AlphaBar);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Border Color");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::ColorEdit4("##border_col", &cfg.border_col.x, ImGuiColorEditFlags_AlphaBar);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Border Thickness");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::SliderFloat("##border_thickness", &cfg.border_thickness, 0.0f, 16.0f, "%.1f");
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Debug Text");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox("Show DrawTexture debug output", &cfg.debug);
+
+        DrawHelpTooltip(
+            "Shows path, OpenGL texture ID, original texture size, draw size, and UVs below the image."
+        );
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Panel Info");
+
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Checkbox("Show preview info", &show_preview_info);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Reset");
+
+        ImGui::TableSetColumnIndex(1);
+
+        if (ImGui::SmallButton("Reset config"))
+        {
+            cfg = ImGuiImageConfig{};
+            image_size = ImVec2(256.0f, 256.0f);
+            show_preview_info = true;
+            auto_draw = true;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::SmallButton("Clear path"))
+            path_buf[0] = '\0';
+
+        ImGui::EndTable();
+    }
 }
