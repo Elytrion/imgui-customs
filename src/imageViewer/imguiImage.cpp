@@ -1,5 +1,5 @@
 #include "imguiImage.h"
-#include <unordered_map>
+
 #include <filesystem>
 
 #ifndef STB_IMAGE_IMPLEMENTATION
@@ -15,13 +15,6 @@
 
 namespace ImGuiImageInternal
 {
-    struct Texture
-    {
-        GLuint id = 0;
-        int width = 0;
-        int height = 0;
-    };
-
     class TextureCache
     {
     public:
@@ -37,17 +30,68 @@ namespace ImGuiImageInternal
             Clear();
         }
 
-        Texture* Get(const std::string& path)
+        int GetTextureCount() const
         {
-            std::string key = std::filesystem::absolute(path).string();
+            return static_cast<int>(m_Textures.size());
+		}
+
+        ImGuiTexture* GetFromPath(const std::string& path)
+        {
+            std::string key = path;
 
             auto it = m_Textures.find(key);
             if (it != m_Textures.end())
                 return &it->second;
 
-            Texture texture;
-            if (!LoadTextureFromFile(key.c_str(), texture))
+            ImGuiTexture texture;
+			std::string fullPath = std::filesystem::absolute(path).string();
+            if (!LoadTextureFromFile(fullPath.c_str(), texture))
                 return nullptr;
+
+            auto [insertedIt, success] = m_Textures.emplace(key, texture);
+            return &insertedIt->second;
+        }
+
+        ImGuiTexture* GetFromPixels(
+            const std::string& key,
+            const uint8_t* pixels,
+            int width,
+            int height
+        )
+        {
+            auto it = m_Textures.find(key);
+            if (it != m_Textures.end())
+                return &it->second;
+
+            if (!pixels || width <= 0 || height <= 0)
+                return nullptr;
+
+            ImGuiTexture texture;
+
+            GLuint id = 0;
+            glCreateTextures(GL_TEXTURE_2D, 1, &id);
+
+            glTextureStorage2D(id, 1, GL_RGBA8, width, height);
+            glTextureSubImage2D(
+                id,
+                0,
+                0,
+                0,
+                width,
+                height,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                pixels
+            );
+
+            glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            texture.id = id;
+            texture.width = width;
+            texture.height = height;
 
             auto [insertedIt, success] = m_Textures.emplace(key, texture);
             return &insertedIt->second;
@@ -67,9 +111,8 @@ namespace ImGuiImageInternal
             m_Textures.clear();
         }
 
-        void RemoveTextureFromCache(const std::string& path)
+        bool RemoveTextureFromCache(const std::string& key)
         {
-            std::string key = std::filesystem::absolute(path).string();
             auto it = m_Textures.find(key);
             if (it != m_Textures.end())
             {
@@ -78,11 +121,18 @@ namespace ImGuiImageInternal
                     glDeleteTextures(1, &it->second.id);
                 }
                 m_Textures.erase(it);
+                return true;
             }
+            return false;
         }
 
+        const std::unordered_map<std::string, ImGuiTexture>& GetCachedTextures() const
+        {
+            return m_Textures;
+		}
+
     private:
-        static bool LoadTextureFromFile(const char* path, Texture& out)
+        static bool LoadTextureFromFile(const char* path, ImGuiTexture& out)
         {
             int width = 0;
             int height = 0;
@@ -122,17 +172,27 @@ namespace ImGuiImageInternal
             return true;
         }
 
-    private:
-        std::unordered_map<std::string, Texture> m_Textures;
+        std::unordered_map<std::string, ImGuiTexture> m_Textures;
     };
 }
 
 namespace ImGui
 {
+    const std::unordered_map<std::string, ImGuiTexture>& GetCachedTextures()
+    {
+		return ImGuiImageInternal::TextureCache::GetInstance().GetCachedTextures();
+    }
+
+    int GetCachedTextureCount()
+    {
+        auto& cache = ImGuiImageInternal::TextureCache::GetInstance();
+        return cache.GetTextureCount();
+	}
+
     bool DrawTexture(const std::string& path, ImGuiImageConfig cfg, ImVec2 size)
     {
         auto& cache = ImGuiImageInternal::TextureCache::GetInstance();
-        ImGuiImageInternal::Texture* texture = cache.Get(path);
+        ImGuiTexture* texture = cache.GetFromPath(path);
 
         if (!texture || texture->id == 0)
             return false;
@@ -224,10 +284,39 @@ namespace ImGui
         return true;
     }
 
-    void CleanTexture(const std::string& path)
+    bool DrawTexture(
+        const std::string& key, const std::vector<uint8_t>& pixels, int width, int height,
+        ImGuiImageConfig cfg, ImVec2 size)
     {
         auto& cache = ImGuiImageInternal::TextureCache::GetInstance();
-        cache.RemoveTextureFromCache(path);
+        ImGuiTexture* texture =
+            cache.GetFromPixels(key, pixels.data(), width, height);
+
+        if (!texture || texture->id == 0)
+            return false;
+
+        if (size.x <= 0.0f)
+            size.x = static_cast<float>(texture->width);
+
+        if (size.y <= 0.0f)
+            size.y = static_cast<float>(texture->height);
+
+        ImGui::Image(
+            (ImTextureID)(intptr_t)texture->id,
+            size,
+            cfg.uv0,
+            cfg.uv1,
+            cfg.tint_col,
+            cfg.border_col
+        );
+
+        return true;
+    }
+
+    bool CleanTexture(const std::string& id)
+    {
+        auto& cache = ImGuiImageInternal::TextureCache::GetInstance();
+        return cache.RemoveTextureFromCache(id);
     }
 
     void CleanAllTextures()

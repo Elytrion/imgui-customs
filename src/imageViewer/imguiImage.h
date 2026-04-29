@@ -1,7 +1,15 @@
 #pragma once
-
 #include <string>
+#include <vector>
 #include <imgui.h>
+#include <unordered_map>
+
+struct ImGuiTexture
+{
+    unsigned int id = 0;
+    int width = 0;
+    int height = 0;
+};
 
 enum class ImGuiImageFit
 {
@@ -42,10 +50,23 @@ namespace ImGui
         return DrawTexture(path, ImGuiImageConfig{}, size);
 	}
 
+    /*
+		Draws an image from raw pixel data. The texture is cached by the provided key and reused if DrawTexture is called again with the same key.
+		The pixels should be in 4-channel RGBA format. The OpenGL texture is created with GL_RGBA8 internal format and GL_RGBA pixel format.
+		If size is (0,0), the original image size is used. Otherwise, the image is drawn according to cfg.fit with the requested size.
+		Returns true if the texture was created and drawn successfully, false if the texture failed to be created.
+    */
+    bool DrawTexture(
+        const std::string& key, const std::vector<uint8_t>& pixels, int width, int height,
+        ImGuiImageConfig cfg = {}, ImVec2 size = ImVec2(0, 0));
+
 	// Clears the cached texture for the given path. Must be called before the OpenGL context is destroyed.
 	// Optional to call when an image file is updated on disk and needs to be reloaded.
-    void CleanTexture(const std::string& path);
+    bool CleanTexture(const std::string& path);
 
 	// Clears all cached textures. Must be called at least once before the OpenGL context is destroyed.
     void CleanAllTextures();
+
+	int GetCachedTextureCount();
+	const std::unordered_map<std::string, ImGuiTexture>& GetCachedTextures();
 }
