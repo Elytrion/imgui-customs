@@ -41,6 +41,7 @@ inline void ImageViewerDemo::DrawSelectedDemo()
     static ImVec2 preview_size = ImVec2(0.0f, 0.0f);
     static ImGuiImageConfig cfg;
     static bool show_image = false;
+    static bool image_loaded = false;
 
     ImGui::TextWrapped(
         "Displays an image as a texture from a provided file path. "
@@ -67,7 +68,11 @@ inline void ImageViewerDemo::DrawSelectedDemo()
     if (show_image)
     {
         ImGui::Separator();
-        ImGui::DrawTexture(path_buf.data(), cfg, preview_size);
+        image_loaded = ImGui::DrawTexture(path_buf.data(), cfg, preview_size);
+        if (!image_loaded)
+        {
+			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Failed to load image. Check the path and try again.");
+        }
     }
 }
 

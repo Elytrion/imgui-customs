@@ -129,13 +129,13 @@ namespace ImGuiImageInternal
 
 namespace ImGui
 {
-    void DrawTexture(const std::string& path, ImGuiImageConfig cfg, ImVec2 size)
+    bool DrawTexture(const std::string& path, ImGuiImageConfig cfg, ImVec2 size)
     {
         auto& cache = ImGuiImageInternal::TextureCache::GetInstance();
         ImGuiImageInternal::Texture* texture = cache.Get(path);
 
         if (!texture || texture->id == 0)
-            return;
+            return false;
 
         ImVec2 originalSize(
             static_cast<float>(texture->width),
@@ -220,6 +220,8 @@ namespace ImGui
             ImGui::Text("UV0: %.3f, %.3f", uv0.x, uv0.y);
             ImGui::Text("UV1: %.3f, %.3f", uv1.x, uv1.y);
         }
+
+        return true;
     }
 
     void CleanTexture(const std::string& path)
