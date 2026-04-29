@@ -72,6 +72,11 @@ add_library(glad STATIC
 )
 target_include_directories(glad PUBLIC external/glad/include)
 
+# --- Add STB ----
+add_library(stb STATIC external/stb/stb_impl.cpp)
+
+target_include_directories(stb PUBLIC external/stb)
+
 # ---- App target ----
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
