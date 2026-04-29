@@ -30,13 +30,21 @@ struct ImGuiImageConfig
 
 namespace ImGui
 {
+    /*
+	    Draws an image from a file path. The image is cached by path and reused after first load.
+	    If size is (0,0), the original image size is used. Otherwise, the image is drawn according to cfg.fit with the requested size.
+	    If the image is updated on disk, call CleanTexture(path) to clear the cache for that image and force reload on next DrawTexture call.
+    */
     void DrawTexture(const std::string& path, ImGuiImageConfig cfg, ImVec2 size = {});
     inline void DrawTexture(const std::string& path, ImVec2 size = {})
     {
         DrawTexture(path, ImGuiImageConfig{}, size);
 	}
 
+	// Clears the cached texture for the given path. Must be called before the OpenGL context is destroyed.
+	// Optional to call when an image file is updated on disk and needs to be reloaded.
     void CleanTexture(const std::string& path);
 
+	// Clears all cached textures. Must be called at least once before the OpenGL context is destroyed.
     void CleanAllTextures();
 }
