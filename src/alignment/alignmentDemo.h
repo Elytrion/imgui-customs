@@ -16,6 +16,7 @@ protected:
 	bool mWasModifyingOffset = false;
 	bool mShowMultiElementAlignment = false;
 	ImVec2 mOffsets[9];
+	ImVec2 testHolderPos;
 };
 
 inline void AlignmentDemo::DrawSelectedDemo()
@@ -81,7 +82,7 @@ inline void AlignmentDemo::DrawDemoPanel()
 
 		ImGui::AlignmentGroup("MiddleLeftGroup", AlignX::Left, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[3]);
 		ImGui::SameLine();
-		ImGui::AlignmentGroup("MiddleCenterGroup", AlignX::Center, AlignY::Middle, [&]()
+		ImVec2 pos = ImGui::AlignmentGroup("MiddleCenterGroup", AlignX::Center, AlignY::Middle, [&]()
 			{ 
 				ImGui::Button("o", btnSize);
 				if (mShowMultiElementAlignment)
@@ -90,7 +91,15 @@ inline void AlignmentDemo::DrawDemoPanel()
 					ImGui::Button("1", btnSize); ImGui::SameLine(); ImGui::Button("2", btnSize);
 				}
 			},
-			mOffsets[4]);
+			mShowMultiElementAlignment, mOffsets[4]);
+		if (testHolderPos.x != pos.x || testHolderPos.y != pos.y)
+		{
+			std::cout << "-------- Alignment Grp Jittered! --------\n";
+			std::cout << "Prev Pos: " << testHolderPos.x << "," << testHolderPos.y << std::endl;
+			std::cout << "Curr Pos: " << pos.x << "," << pos.y << std::endl;
+			std::cout << "-----------------------------------------\n";
+			testHolderPos = pos;
+		}
 		ImGui::SameLine();
 		ImGui::AlignmentGroup("MiddleRightGroup", AlignX::Right, AlignY::Middle, [&]() { ImGui::Button("o", btnSize); }, mOffsets[5]);
 
@@ -114,7 +123,7 @@ inline void AlignmentDemo::DrawDemoPanel()
 	ImGui::Checkbox("Modify Offsets", &mModifyOffset);
 
 	ImGui::Checkbox("Show Multi-Element Alignment", &mShowMultiElementAlignment);
-
+	
 	if (mModifyOffset)
 	{
 		mWasModifyingOffset = true;
@@ -140,5 +149,6 @@ inline void AlignmentDemo::DrawDemoPanel()
 
 
 }
+
 
 

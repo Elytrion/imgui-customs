@@ -47,6 +47,16 @@ namespace
 		st->SetFloat(ky, v.y);
 		AlignMarkPresent(st, base, tag);
 	}
+	inline int AlignGetInt(ImGuiStorage* st, ImGuiID base, const char* tag, int def = 0)
+	{
+		ImGuiID k = AlignKey(base, tag);
+		return st->GetInt(k, def);
+	}
+	inline void AlignSetInt(ImGuiStorage* st, ImGuiID base, const char* tag, int i)
+	{
+		ImGuiID k = AlignKey(base, tag);
+		st->SetInt(k, i);
+	}
 	inline void AlignClear(ImGuiStorage* st, ImGuiID base, const char* tag)
 	{
 		st->SetBool(AlignPresentKey(base, tag), false);
@@ -56,6 +66,53 @@ namespace
 		ImVec4 c = ImGui::ColorConvertU32ToFloat4(col);
 		c.w *= (a01 < 0.f ? 0.f : a01 > 1.f ? 1.f : a01);
 		return ImGui::ColorConvertFloat4ToU32(c);
+	}
+
+	static inline bool ShouldAdjust(ImGuiStorage* st, ImGuiID base, int bufferFrames = 3)
+	{
+		const char* sizeTag = "##size";
+		const char* framesTag = "##frames";
+
+		const ImVec2 size = ImGui::GetWindowSize();
+
+		const float currentW = size.x;
+		const float currentH = size.y;
+
+		const ImGuiID wKey = ImHashStr("##w", 0, base);
+		const ImGuiID hKey = ImHashStr("##h", 0, base);
+		const ImGuiID framesKey = ImHashStr("##frames", 0, base);
+
+		const float prevW = st->GetFloat(wKey, -1.f);
+		const float prevH = st->GetFloat(hKey, -1.f);
+
+		const bool firstRun = prevW < 0.f || prevH < 0.f;
+		const bool sizeChanged =
+			firstRun ||
+			std::abs(currentW - prevW) > 0.5f ||
+			std::abs(currentH - prevH) > 0.5f;
+
+		int remaining = st->GetInt(framesKey, 0);
+
+		if (sizeChanged)
+		{
+			remaining = bufferFrames;
+		}
+		else if (remaining > 0)
+		{
+			--remaining;
+		}
+
+		st->SetFloat(wKey, currentW);
+		st->SetFloat(hKey, currentH);
+		st->SetInt(framesKey, remaining);
+
+		return firstRun || sizeChanged || remaining > 0;
+	}
+
+	static inline void ForceAdjust(ImGuiStorage* st, ImGuiID base, int bufferFrames = 3)
+	{
+		const ImGuiID framesKey = ImHashStr("##frames", 0, base);
+		st->SetInt(framesKey, bufferFrames);
 	}
 }
 
@@ -82,13 +139,18 @@ namespace ImGui
 		Widgets&& widgets,
 		ImVec2 offset = ImVec2(0, 0),
 		bool restore_cursor_after = true,
-		const char* cache_tag = "ag_size")
+		const char* size_cache_tag = "ag_size",
+		const char* cursor_cache_tag = "ag_cursor")
 	{
 		const ImVec2 cursor_before = ImGui::GetCursorPos();
 		ImGuiStorage* st = ImGui::GetStateStorage();
 		const ImGuiID base = AlignBaseKey(id);
-		const bool newPass = !AlignHas(st, base, cache_tag);
-		const ImVec2 size = AlignGetVec2(st, base, cache_tag, ImVec2(0, 0));
+		const bool newPass = !AlignHas(st, base, size_cache_tag);
+		const ImVec2 size = AlignGetVec2(st, base, size_cache_tag, ImVec2(0, 0));
+		const bool hasCachedCursor = AlignHas(st, base, cursor_cache_tag);
+		const ImVec2 cursor_cached = AlignGetVec2(st, base, cursor_cache_tag, ImVec2(0, 0));
+
+		bool const shouldAdjust = ShouldAdjust(st, base);
 
 		if (newPass)
 		{
@@ -124,9 +186,14 @@ namespace ImGui
 
 		const ImVec2 scroll(ImGui::GetScrollX(), ImGui::GetScrollY());
 
-		const ImVec2 cursorPos =
-			ImVec2(anchor_x - size.x * pivot_x + offset.x + scroll.x * 2.f,
-				anchor_y - size.y * pivot_y + offset.y + scroll.y * 2.f);
+		ImVec2 cursorPos;
+		if (shouldAdjust || !hasCachedCursor)
+		{
+			cursorPos = { anchor_x - size.x * pivot_x + offset.x + scroll.x * 2.f,
+						  anchor_y - size.y * pivot_y + offset.y + scroll.y * 2.f };
+		}
+		else
+			cursorPos = cursor_cached;
 
 		ImGui::SetCursorPos(cursorPos);
 		ImGui::Dummy(ImVec2(0, 0)); // to make sure the cursor position is updated before BeginGroup
@@ -146,7 +213,107 @@ namespace ImGui
 			ImGui::PopStyleVar();
 		}
 
-		AlignSetVec2(st, base, cache_tag, ImGui::GetItemRectSize());
+		AlignSetVec2(st, base, size_cache_tag, ImGui::GetItemRectSize());
+		AlignSetVec2(st, base, cursor_cache_tag, cursorPos);
+
+		if (restore_cursor_after)
+			ImGui::SetCursorPos(cursor_before);
+
+		return cursorPos;
+	}
+
+	template<typename Widgets>
+	ImVec2 AlignmentGroup(const char* id,
+		AlignX ax, AlignY ay,
+		Widgets&& widgets,
+		int revisionNum = 0,
+		ImVec2 offset = ImVec2(0, 0),
+		bool restore_cursor_after = true,
+		const char* size_cache_tag = "ag_size",
+		const char* cursor_cache_tag = "ag_cursor",
+		const char* revision_cache_tag = "ag_revision")
+	{
+		const ImVec2 cursor_before = ImGui::GetCursorPos();
+		ImGuiStorage* st = ImGui::GetStateStorage();
+		const ImGuiID base = AlignBaseKey(id);
+		const bool newPass = !AlignHas(st, base, size_cache_tag);
+		const ImVec2 size = AlignGetVec2(st, base, size_cache_tag, ImVec2(0, 0));
+		const bool hasCachedCursor = AlignHas(st, base, cursor_cache_tag);
+		const ImVec2 cursor_cached = AlignGetVec2(st, base, cursor_cache_tag, ImVec2(0, 0));
+		const int revision_cached = AlignGetInt(st, base, revision_cache_tag, 0);
+
+		const bool revisionChanged = (revisionNum != revision_cached);
+		if (revisionChanged)
+		{
+			ForceAdjust(st, base);
+			AlignSetInt(st, base, revision_cache_tag, revisionNum);
+		}
+
+		bool const shouldAdjust = ShouldAdjust(st, base);
+
+		if (newPass)
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.f);
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushItemFlag(ImGuiItemFlags_AllowOverlap, true);
+			ImGui::PushItemFlag(ImGuiItemFlags_NoWindowHoverableCheck, true);
+			ImGui::PushItemFlag(ImGuiItemFlags_NoNavDisableMouseHover, true);
+		}
+
+		const ImVec2 cr_min = ImGui::GetWindowContentRegionMin();
+		const ImVec2 cr_max = ImGui::GetWindowContentRegionMax();
+
+		const float anchor_x =
+			(ax == AlignX::Left) ? cr_min.x :
+			(ax == AlignX::Center) ? (cr_min.x + cr_max.x) * 0.5f :
+			cr_max.x;
+
+		const float anchor_y =
+			(ay == AlignY::Top) ? cr_min.y :
+			(ay == AlignY::Middle) ? (cr_min.y + cr_max.y) * 0.5f :
+			cr_max.y;
+
+		const float pivot_x =
+			(ax == AlignX::Left) ? 0.0f :
+			(ax == AlignX::Center) ? 0.5f :
+			1.0f;
+
+		const float pivot_y =
+			(ay == AlignY::Top) ? 0.0f :
+			(ay == AlignY::Middle) ? 0.5f :
+			1.0f;
+
+		const ImVec2 scroll(ImGui::GetScrollX(), ImGui::GetScrollY());
+
+		ImVec2 cursorPos;
+		if (shouldAdjust || !hasCachedCursor)
+		{
+			cursorPos = { anchor_x - size.x * pivot_x + offset.x + scroll.x * 2.f,
+						  anchor_y - size.y * pivot_y + offset.y + scroll.y * 2.f };
+		}
+		else
+			cursorPos = cursor_cached;
+
+		ImGui::SetCursorPos(cursorPos);
+		ImGui::Dummy(ImVec2(0, 0)); // to make sure the cursor position is updated before BeginGroup
+		ImGui::SetCursorPos(cursorPos); // need to set again after Dummy to avoid it consuming the pos set
+		ImGui::PushID(id);
+		ImGui::BeginGroup();
+		widgets();
+		ImGui::EndGroup();
+		ImGui::PopID();
+
+		if (newPass)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopItemFlag();
+			ImGui::PopItemFlag();
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+
+		AlignSetVec2(st, base, size_cache_tag, ImGui::GetItemRectSize());
+		AlignSetVec2(st, base, cursor_cache_tag, cursorPos);
 
 		if (restore_cursor_after)
 			ImGui::SetCursorPos(cursor_before);
