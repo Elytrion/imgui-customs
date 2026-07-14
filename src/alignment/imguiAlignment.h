@@ -119,6 +119,27 @@ namespace
 namespace ImGui
 {
 	/*
+	@brief Invalidates the cache of a given alignment group, forcing a recalculation.
+	@details Use if a widget group size or position changes within an alignment group. This allows the cached size and positions to be
+			 invalidated and force a recalculation. This should be done just before, or just after the alignment group call, and within the
+			 same window, using the correct cache tags (if modified by user). If this is not called, the alignment group will not be aligned
+			 properly with the new widget size until a window resize.
+	@param id			- A unique identifier for the alignment group. Must be the same as the one targeted.
+	@param size_cache_tag	- A tag to identify the cached size of this group. Only modify this if using custom tags on the main alignment group.
+	@param cursor_cache_tag - A tag to identify the cached cursor starting position of this group. Only modify this if using custom tags on the main alignment group.
+	*/
+	inline void InvalidateAlignmentGroup(const char* id,
+		const char* size_cache_tag = "ag_size",
+		const char* cursor_cache_tag = "ag_cursor")
+	{
+		ImGuiStorage* st = ImGui::GetStateStorage();
+		const ImGuiID base = AlignBaseKey(id);
+
+		AlignClear(st, base, size_cache_tag);
+		AlignClear(st, base, cursor_cache_tag);
+	}
+
+	/*
 	@brief Aligns a group of widgets according to the specified alignment anchors.
 	@details Takes in a callable 'widgets' that contains the ImGui calls to be aligned. These widgets are
 			 measured on the first pass (when they are invisible) and then positioned accordingly on subsequent passes.
@@ -130,7 +151,8 @@ namespace ImGui
 	@param widgets		- A callable (e.g., lambda) that contains the ImGui calls to be aligned.
 	@param offset		- Optional offset to apply to the aligned position.
 	@param restore_cursor_after - If true, restores the cursor position after rendering the aligned group. Best to leave true.
-	@param cache_tag	- A tag to identify the cached size of this group. Change if the contents change dynamically.
+	@param size_cache_tag	- A tag to identify the cached size of this group. Change if the contents change dynamically or use InvalidateAlignmentGroup
+	@param cursor_cache_tag - A tag to identify the cached cursor starting position of this group. Change if the contents change dynamically or use InvalidateAlignmentGroup
 	@return				- The start position where the aligned group was rendered.
 	*/
 	template<typename Widgets>
@@ -159,105 +181,7 @@ namespace ImGui
 			ImGui::PushItemFlag(ImGuiItemFlags_AllowOverlap, true);
 			ImGui::PushItemFlag(ImGuiItemFlags_NoWindowHoverableCheck, true);
 			ImGui::PushItemFlag(ImGuiItemFlags_NoNavDisableMouseHover, true);
-		}
-
-		const ImVec2 cr_min = ImGui::GetWindowContentRegionMin();
-		const ImVec2 cr_max = ImGui::GetWindowContentRegionMax();
-
-		const float anchor_x =
-			(ax == AlignX::Left) ? cr_min.x :
-			(ax == AlignX::Center) ? (cr_min.x + cr_max.x) * 0.5f :
-			cr_max.x;
-
-		const float anchor_y =
-			(ay == AlignY::Top) ? cr_min.y :
-			(ay == AlignY::Middle) ? (cr_min.y + cr_max.y) * 0.5f :
-			cr_max.y;
-
-		const float pivot_x =
-			(ax == AlignX::Left) ? 0.0f :
-			(ax == AlignX::Center) ? 0.5f :
-			1.0f;
-
-		const float pivot_y =
-			(ay == AlignY::Top) ? 0.0f :
-			(ay == AlignY::Middle) ? 0.5f :
-			1.0f;
-
-		const ImVec2 scroll(ImGui::GetScrollX(), ImGui::GetScrollY());
-
-		ImVec2 cursorPos;
-		if (shouldAdjust || !hasCachedCursor)
-		{
-			cursorPos = { anchor_x - size.x * pivot_x + offset.x + scroll.x * 2.f,
-						  anchor_y - size.y * pivot_y + offset.y + scroll.y * 2.f };
-		}
-		else
-			cursorPos = cursor_cached;
-
-		ImGui::SetCursorPos(cursorPos);
-		ImGui::Dummy(ImVec2(0, 0)); // to make sure the cursor position is updated before BeginGroup
-		ImGui::SetCursorPos(cursorPos); // need to set again after Dummy to avoid it consuming the pos set
-		ImGui::PushID(id);
-		ImGui::BeginGroup();
-		widgets();
-		ImGui::EndGroup();
-		ImGui::PopID();
-
-		if (newPass)
-		{
-			ImGui::PopItemFlag();
-			ImGui::PopItemFlag();
-			ImGui::PopItemFlag();
-			ImGui::PopItemFlag();
-			ImGui::PopStyleVar();
-		}
-
-		AlignSetVec2(st, base, size_cache_tag, ImGui::GetItemRectSize());
-		AlignSetVec2(st, base, cursor_cache_tag, cursorPos);
-
-		if (restore_cursor_after)
-			ImGui::SetCursorPos(cursor_before);
-
-		return cursorPos;
-	}
-
-	template<typename Widgets>
-	ImVec2 AlignmentGroup(const char* id,
-		AlignX ax, AlignY ay,
-		Widgets&& widgets,
-		int revisionNum = 0,
-		ImVec2 offset = ImVec2(0, 0),
-		bool restore_cursor_after = true,
-		const char* size_cache_tag = "ag_size",
-		const char* cursor_cache_tag = "ag_cursor",
-		const char* revision_cache_tag = "ag_revision")
-	{
-		const ImVec2 cursor_before = ImGui::GetCursorPos();
-		ImGuiStorage* st = ImGui::GetStateStorage();
-		const ImGuiID base = AlignBaseKey(id);
-		const bool newPass = !AlignHas(st, base, size_cache_tag);
-		const ImVec2 size = AlignGetVec2(st, base, size_cache_tag, ImVec2(0, 0));
-		const bool hasCachedCursor = AlignHas(st, base, cursor_cache_tag);
-		const ImVec2 cursor_cached = AlignGetVec2(st, base, cursor_cache_tag, ImVec2(0, 0));
-		const int revision_cached = AlignGetInt(st, base, revision_cache_tag, 0);
-
-		const bool revisionChanged = (revisionNum != revision_cached);
-		if (revisionChanged)
-		{
 			ForceAdjust(st, base);
-			AlignSetInt(st, base, revision_cache_tag, revisionNum);
-		}
-
-		bool const shouldAdjust = ShouldAdjust(st, base);
-
-		if (newPass)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.f);
-			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-			ImGui::PushItemFlag(ImGuiItemFlags_AllowOverlap, true);
-			ImGui::PushItemFlag(ImGuiItemFlags_NoWindowHoverableCheck, true);
-			ImGui::PushItemFlag(ImGuiItemFlags_NoNavDisableMouseHover, true);
 		}
 
 		const ImVec2 cr_min = ImGui::GetWindowContentRegionMin();
