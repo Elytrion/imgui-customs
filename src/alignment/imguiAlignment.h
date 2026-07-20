@@ -153,6 +153,7 @@ namespace ImGui
 	@param restore_cursor_after - If true, restores the cursor position after rendering the aligned group. Best to leave true.
 	@param size_cache_tag	- A tag to identify the cached size of this group. Change if the contents change dynamically or use InvalidateAlignmentGroup
 	@param cursor_cache_tag - A tag to identify the cached cursor starting position of this group. Change if the contents change dynamically or use InvalidateAlignmentGroup
+	@param keep_updating - If true, the alignment group will keep updating its position every frame, even if the window size hasn't changed. This is useful for dynamic content that may change size or position frequently.
 	@return				- The start position where the aligned group was rendered.
 	*/
 	template<typename Widgets>
@@ -162,7 +163,8 @@ namespace ImGui
 		ImVec2 offset = ImVec2(0, 0),
 		bool restore_cursor_after = true,
 		const char* size_cache_tag = "ag_size",
-		const char* cursor_cache_tag = "ag_cursor")
+		const char* cursor_cache_tag = "ag_cursor",
+		bool keep_updating = false)
 	{
 		const ImVec2 cursor_before = ImGui::GetCursorPos();
 		ImGuiStorage* st = ImGui::GetStateStorage();
@@ -172,7 +174,7 @@ namespace ImGui
 		const bool hasCachedCursor = AlignHas(st, base, cursor_cache_tag);
 		const ImVec2 cursor_cached = AlignGetVec2(st, base, cursor_cache_tag, ImVec2(0, 0));
 
-		bool const shouldAdjust = ShouldAdjust(st, base);
+		bool const shouldAdjust = keep_updating || ShouldAdjust(st, base);
 
 		if (newPass)
 		{
